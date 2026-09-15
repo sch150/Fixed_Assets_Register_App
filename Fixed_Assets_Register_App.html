@@ -1,0 +1,2860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fixed Assets Register System</title>
+<style>
+  :root{
+    --navy:#0f2d4f;
+    --navy-light:#1c4a7a;
+    --navy-dark:#0a1f38;
+    --accent:#c9922f;
+    --accent-light:#e0ac4d;
+    --bg:#eef1f5;
+    --paper:#ffffff;
+    --text:#1f2937;
+    --muted:#6b7280;
+    --border:#dfe3e9;
+    --table-head:#eef2f7;
+    --green:#1a7f4e;
+    --green-bg:#e7f6ee;
+    --red:#b3261e;
+    --red-bg:#fdeceb;
+    --amber:#9a6a00;
+    --amber-bg:#fdf3dd;
+    --blue:#1c4a7a;
+    --blue-bg:#e8f0f9;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family:"Segoe UI", -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    font-size:14.5px;
+    line-height:1.5;
+  }
+  button{font-family:inherit;cursor:pointer;}
+  input,select,textarea{font-family:inherit;font-size:14px;}
+  a{color:var(--navy-light);}
+  h1,h2,h3{margin:0 0 4px;color:var(--navy);}
+  .hidden{display:none !important;}
+
+  /* ---------- Login ---------- */
+  #login-screen{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:linear-gradient(135deg,var(--navy-dark) 0%,var(--navy) 55%,var(--navy-light) 100%);
+    padding:20px;
+  }
+  .login-card{
+    background:var(--paper);
+    width:100%;
+    max-width:400px;
+    border-radius:10px;
+    box-shadow:0 20px 50px rgba(0,0,0,.35);
+    overflow:hidden;
+  }
+  .login-head{
+    background:var(--navy-dark);
+    color:#fff;
+    padding:28px 32px 22px;
+    border-bottom:4px solid var(--accent);
+  }
+  .login-head .kicker{
+    text-transform:uppercase;
+    letter-spacing:.1em;
+    font-size:11px;
+    color:var(--accent-light);
+    font-weight:700;
+    margin-bottom:6px;
+  }
+  .login-head h1{color:#fff;font-size:21px;margin:0;}
+  .login-body{padding:26px 32px 30px;}
+  .field{margin-bottom:16px;}
+  .field label{
+    display:block;
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--navy);
+    margin-bottom:5px;
+  }
+  .field input,.field select,.field textarea{
+    width:100%;
+    padding:9px 11px;
+    border:1px solid var(--border);
+    border-radius:6px;
+    background:#fff;
+    color:var(--text);
+  }
+  .field input:focus,.field select:focus,.field textarea:focus{
+    outline:none;
+    border-color:var(--navy-light);
+    box-shadow:0 0 0 3px rgba(28,74,122,.12);
+  }
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:9px 16px;
+    border-radius:6px;
+    border:1px solid transparent;
+    font-size:13.5px;
+    font-weight:600;
+    background:var(--navy);
+    color:#fff;
+    transition:background .15s;
+  }
+  .btn:hover{background:var(--navy-light);}
+  .btn.btn-accent{background:var(--accent);color:#3a2600;}
+  .btn.btn-accent:hover{background:var(--accent-light);}
+  .btn.btn-outline{background:#fff;color:var(--navy);border-color:var(--border);}
+  .btn.btn-outline:hover{background:var(--table-head);}
+  .btn.btn-danger{background:var(--red);color:#fff;}
+  .btn.btn-danger:hover{background:#8f1e18;}
+  .btn.btn-sm{padding:5px 10px;font-size:12.5px;}
+  .btn.btn-block{width:100%;justify-content:center;}
+  .login-body .btn{margin-top:6px;}
+  .login-hint{
+    margin-top:16px;
+    font-size:12px;
+    color:var(--muted);
+    background:var(--blue-bg);
+    border:1px solid #cfe0f0;
+    padding:10px 12px;
+    border-radius:6px;
+    line-height:1.5;
+  }
+  .login-error{
+    background:var(--red-bg);
+    color:var(--red);
+    border:1px solid #f3c6c2;
+    padding:8px 12px;
+    border-radius:6px;
+    font-size:13px;
+    margin-bottom:14px;
+  }
+
+  /* ---------- App Shell ---------- */
+  #app-shell{display:none;min-height:100vh;grid-template-columns:230px 1fr;}
+  #app-shell.active{display:grid;}
+  aside#sidebar{
+    background:var(--navy-dark);
+    color:#c9d6e5;
+    position:sticky;
+    top:0;
+    height:100vh;
+    overflow-y:auto;
+    padding:0 0 24px;
+  }
+  .brand{
+    padding:20px 20px 16px;
+    border-bottom:1px solid rgba(255,255,255,.08);
+    margin-bottom:10px;
+  }
+  .brand .brand-name{color:#fff;font-weight:700;font-size:15px;line-height:1.3;}
+  .brand .brand-tag{color:var(--accent-light);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;margin-top:4px;}
+  nav.nav-list{padding:0 10px;}
+  nav.nav-list .nav-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:9px 12px;
+    border-radius:6px;
+    color:#c9d6e5;
+    font-size:13.5px;
+    margin-bottom:2px;
+    cursor:pointer;
+    border:none;
+    background:transparent;
+    width:100%;
+    text-align:left;
+  }
+  nav.nav-list .nav-item:hover{background:rgba(255,255,255,.06);color:#fff;}
+  nav.nav-list .nav-item.active{background:var(--navy-light);color:#fff;}
+  nav.nav-list .nav-icon{width:16px;text-align:center;font-size:13px;opacity:.9;}
+  nav.nav-list .nav-section-label{
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:.09em;
+    color:#7f93a8;
+    padding:14px 12px 6px;
+  }
+  main#main-panel{padding:0;min-width:0;}
+  header#topbar{
+    background:#fff;
+    border-bottom:1px solid var(--border);
+    padding:14px 26px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    position:sticky;
+    top:0;
+    z-index:5;
+  }
+  header#topbar h2{font-size:18px;margin:0;}
+  header#topbar .sub{color:var(--muted);font-size:12.5px;margin-top:2px;}
+  .user-box{display:flex;align-items:center;gap:12px;}
+  .storage-banner{
+    position:fixed; top:0; left:0; right:0; z-index:500;
+    background:var(--navy-dark); color:#fff; text-align:center;
+    font-size:12.5px; font-weight:600; padding:8px 12px;
+    box-shadow:0 2px 10px rgba(0,0,0,.2);
+    transition:opacity .4s ease;
+  }
+  .storage-pill{
+    font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em;
+    padding:4px 9px; border-radius:20px; white-space:nowrap;
+  }
+  .storage-pill.live{ background:var(--green-bg); color:var(--green); }
+  .storage-pill.offline{ background:var(--amber-bg); color:var(--amber); }
+  .user-chip{
+    display:flex;flex-direction:column;align-items:flex-end;
+    font-size:12.5px;
+  }
+  .user-chip .u-name{font-weight:700;color:var(--navy);}
+  .user-chip .u-role{
+    color:var(--muted);
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+  }
+  .avatar{
+    width:34px;height:34px;border-radius:50%;
+    background:var(--navy);color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:13px;
+  }
+  #view-container{padding:22px 26px 60px;}
+
+  /* ---------- Generic UI ---------- */
+  .card{
+    background:var(--paper);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:18px 20px;
+    margin-bottom:18px;
+  }
+  .card h3{font-size:15px;margin-bottom:12px;}
+  .toolbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-bottom:16px;
+  }
+  .toolbar .left{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .toolbar .right{display:flex;gap:8px;flex-wrap:wrap;}
+  .kpi-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:14px;
+    margin-bottom:18px;
+  }
+  .kpi-card{
+    background:var(--paper);
+    border:1px solid var(--border);
+    border-left:4px solid var(--navy-light);
+    border-radius:8px;
+    padding:14px 16px;
+  }
+  .kpi-card .kpi-label{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;}
+  .kpi-card .kpi-value{font-size:21px;font-weight:700;color:var(--navy);}
+  .kpi-card.accent{border-left-color:var(--accent);}
+  .kpi-card.green{border-left-color:var(--green);}
+  .kpi-card.red{border-left-color:var(--red);}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  thead th{
+    background:var(--table-head);
+    text-align:left;
+    padding:9px 10px;
+    border:1px solid var(--border);
+    color:var(--navy);
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:.02em;
+    white-space:nowrap;
+  }
+  tbody td{padding:8px 10px;border:1px solid var(--border);background:#fff;vertical-align:top;}
+  tbody tr:nth-child(even) td{background:#fafbfc;}
+  tbody tr:hover td{background:#f1f6fb;}
+  .table-wrap{overflow-x:auto;border-radius:6px;}
+  .badge{
+    display:inline-block;
+    padding:2px 9px;
+    border-radius:999px;
+    font-size:11px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.02em;
+  }
+  .badge.active{background:var(--green-bg);color:var(--green);}
+  .badge.wip{background:var(--amber-bg);color:var(--amber);}
+  .badge.disposed{background:#eee;color:#666;}
+  .badge.transferred{background:var(--blue-bg);color:var(--blue);}
+  .badge.review{background:var(--red-bg);color:var(--red);}
+  .badge.pending{background:var(--amber-bg);color:var(--amber);}
+  .badge.approved{background:var(--green-bg);color:var(--green);}
+  .badge.reclassified{background:#eee;color:#666;}
+  .badge.fully{background:#eee;color:#555;}
+  .badge.role-admin{background:#f0e6d2;color:#7a5b12;}
+  .badge.role-staff{background:var(--blue-bg);color:var(--blue);}
+  .form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 16px;}
+  .form-grid .field.span2{grid-column:span 2;}
+  .form-grid .field.span3{grid-column:span 3;}
+  fieldset{border:1px solid var(--border);border-radius:8px;padding:16px 18px;margin-bottom:18px;}
+  legend{padding:0 8px;font-weight:700;color:var(--navy);font-size:13.5px;}
+  .actions-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px;}
+  .empty-state{
+    text-align:center;
+    padding:40px 20px;
+    color:var(--muted);
+  }
+  .empty-state .es-icon{font-size:30px;margin-bottom:8px;}
+  .note{font-size:12.5px;color:var(--muted);}
+  .callout{
+    background:var(--blue-bg);
+    border-left:4px solid var(--navy-light);
+    padding:10px 14px;
+    border-radius:0 6px 6px 0;
+    font-size:13px;
+    margin-bottom:14px;
+  }
+  .callout.warn{background:var(--amber-bg);border-left-color:var(--accent);}
+  .callout.danger{background:var(--red-bg);border-left-color:var(--red);}
+  .search-input{
+    padding:8px 12px;border:1px solid var(--border);border-radius:6px;min-width:220px;background:#fff;
+  }
+  .pill-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
+  .pill-tab{
+    padding:7px 14px;border-radius:999px;border:1px solid var(--border);
+    background:#fff;color:var(--navy);font-size:12.5px;font-weight:600;
+  }
+  .pill-tab.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+  .link-btn{background:none;border:none;color:var(--navy-light);font-weight:600;font-size:13px;padding:2px 4px;}
+  .link-btn.danger{color:var(--red);}
+  .money{font-variant-numeric:tabular-nums;}
+  .text-right{text-align:right;}
+  .text-muted{color:var(--muted);}
+  .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:12.5px;}
+  .bar-row .bar-label{width:150px;flex-shrink:0;color:var(--text);}
+  .bar-track{flex:1;background:#eef1f5;border-radius:4px;height:10px;overflow:hidden;}
+  .bar-fill{height:100%;background:var(--navy-light);border-radius:4px;}
+  .bar-row .bar-value{width:100px;flex-shrink:0;text-align:right;font-weight:600;}
+
+  /* ---------- Modal ---------- */
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(10,20,35,.55);
+    display:flex;align-items:center;justify-content:center;
+    z-index:100;padding:20px;
+  }
+  .modal-box{
+    background:#fff;border-radius:10px;max-width:560px;width:100%;
+    max-height:88vh;overflow-y:auto;box-shadow:0 20px 50px rgba(0,0,0,.35);
+  }
+  .modal-head{
+    padding:16px 22px;border-bottom:1px solid var(--border);
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .modal-head h3{margin:0;}
+  .modal-close{background:none;border:none;font-size:20px;color:var(--muted);}
+  .modal-body{padding:20px 22px;}
+  .modal-foot{padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
+
+  /* ---------- Toasts ---------- */
+  #toast-wrap{position:fixed;bottom:20px;right:20px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+  .toast{
+    background:var(--navy-dark);color:#fff;padding:11px 16px;border-radius:7px;
+    font-size:13px;box-shadow:0 8px 20px rgba(0,0,0,.25);min-width:220px;
+    border-left:4px solid var(--accent);
+  }
+  .toast.success{border-left-color:var(--green);}
+  .toast.error{border-left-color:var(--red);}
+
+  @media (max-width:1100px){
+    .kpi-grid{grid-template-columns:repeat(2,1fr);}
+    .form-grid{grid-template-columns:repeat(2,1fr);}
+    .form-grid .field.span2,.form-grid .field.span3{grid-column:span 2;}
+  }
+  @media (max-width:760px){
+    #app-shell{grid-template-columns:1fr;}
+    aside#sidebar{position:relative;height:auto;}
+    .kpi-grid{grid-template-columns:1fr;}
+    .form-grid{grid-template-columns:1fr;}
+    .form-grid .field.span2,.form-grid .field.span3{grid-column:span 1;}
+  }
+  @media print{
+    aside#sidebar,header#topbar,.toolbar .right,.no-print{display:none !important;}
+    #app-shell{display:block !important;grid-template-columns:1fr;}
+    #view-container{padding:0;}
+    body{background:#fff;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= LOGIN ================= -->
+<div id="storage-mode-banner" class="storage-banner hidden"></div>
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-head">
+      <div class="kicker">Internal Finance Application</div>
+      <h1>Fixed Assets Register System</h1>
+    </div>
+    <div class="login-body">
+      <div id="login-error" class="login-error hidden"></div>
+      <form id="login-form">
+        <div class="field">
+          <label for="login-username">Username</label>
+          <input type="text" id="login-username" autocomplete="username" required>
+        </div>
+        <div class="field">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="btn btn-accent btn-block">Sign In</button>
+      </form>
+      <div class="login-hint">
+        First time here? Default administrator login: <strong>admin</strong> / <strong>admin123</strong><br>
+        Change this password after your first sign-in via <em>Administration &rarr; Users</em>.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= APP SHELL ================= -->
+<div id="app-shell">
+  <aside id="sidebar">
+    <div class="brand">
+      <div class="brand-name">Fixed Assets<br>Register System</div>
+      <div class="brand-tag">Accounting Grade</div>
+    </div>
+    <nav class="nav-list" id="nav-list"></nav>
+  </aside>
+
+  <main id="main-panel">
+    <header id="topbar">
+      <div>
+        <h2 id="view-title">Dashboard</h2>
+        <div class="sub" id="view-sub">Overview of organizational fixed assets</div>
+      </div>
+      <div class="user-box">
+        <div class="user-chip">
+          <span class="u-name" id="topbar-username">&nbsp;</span>
+          <span class="u-role" id="topbar-role">&nbsp;</span>
+        </div>
+        <div class="avatar" id="topbar-avatar">?</div>
+        <span class="storage-pill hidden" id="storage-pill"></span>
+        <button class="btn btn-outline btn-sm" id="btn-logout">Log Out</button>
+      </div>
+    </header>
+    <div id="view-container"></div>
+  </main>
+</div>
+
+<div id="toast-wrap"></div>
+<div id="modal-root"></div>
+
+<script>
+/* =========================================================================
+   FIXED ASSETS REGISTER SYSTEM
+   Single-file offline application. Storage: IndexedDB ("farsDB").
+   ========================================================================= */
+
+/* ---------------------------- DB LAYER ----------------------------
+   Dual-backend storage:
+   - "cloud"  : Claude's realtime `db` capability — a genuine live,
+                shared database. Every signed-in viewer of this page
+                reads and writes the same data in real time. Used
+                automatically whenever the page is opened inside
+                Claude (published artifact).
+   - "idb"    : Browser IndexedDB, entirely local to the device. Used
+                automatically as a fallback whenever the cloud
+                capability isn't available — e.g. the file has been
+                downloaded and is being opened directly in a browser,
+                so the register keeps working fully offline.
+   Every call site elsewhere in the app uses the same five functions
+   (openDatabase / dbGetAll / dbGet / dbPut / dbAdd / dbDelete /
+   dbClear) regardless of which backend is active. ------------------- */
+const DB_NAME = 'farsDB';
+const DB_VERSION = 1;
+const ALL_STORES = ['users','categories','assets','wipProjects','wipExpenditure','transfers','disposals','auditLog','settings'];
+
+let DB = null;            // IndexedDB handle (idb backend only)
+let CLOUD_DB = null;      // db capability namespace (cloud backend only)
+let DB_BACKEND = 'idb';   // 'cloud' | 'idb' — set by openDatabase()
+let LIVE_SYNC_UNSUBS = []; // active onSnapshot listeners (cloud backend)
+
+/* 'settings' documents are keyed by a string `key` field; every other
+   store is keyed by a numeric `id` field we assign ourselves (never
+   relying on a DB-native autoincrement), so ids behave identically on
+   both backends. */
+function idFieldFor(store){ return store === 'settings' ? 'key' : 'id'; }
+
+let __idSeq = 0;
+function generateId(){
+  __idSeq = (__idSeq + 1) % 1000;
+  return Date.now() * 1000 + __idSeq; // large-but-safe unique integer
+}
+
+async function openDatabase(){
+  // 1) Prefer the live cloud database when this page is running inside Claude.
+  try{
+    if(window.claude && typeof window.claude.use === 'function'){
+      const db = await window.claude.use('db');
+      if(db){
+        CLOUD_DB = db;
+        DB_BACKEND = 'cloud';
+      }
+      try{ DOWNLOADS_CAP = await window.claude.use('downloads'); }catch(err){ DOWNLOADS_CAP = null; }
+      if(DB_BACKEND === 'cloud') return;
+    }
+  } catch(err){ /* fall through to local storage */ }
+
+  // 2) Fall back to local IndexedDB — fully offline, per-device.
+  DB_BACKEND = 'idb';
+  await openLocalIDB();
+}
+
+function openLocalIDB(){
+  return new Promise((resolve, reject)=>{
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = (e)=>{
+      const d = e.target.result;
+      ALL_STORES.forEach(name=>{
+        if(!d.objectStoreNames.contains(name)){
+          d.createObjectStore(name, {keyPath: idFieldFor(name)});
+        }
+      });
+    };
+    req.onsuccess = (e)=>{ DB = e.target.result; resolve(DB); };
+    req.onerror = (e)=> reject(e.target.error);
+  });
+}
+
+function txStore(store, mode='readonly'){
+  return DB.transaction(store, mode).objectStore(store);
+}
+
+function dbGetAll(store){
+  if(DB_BACKEND === 'cloud'){
+    return CLOUD_DB.collection(store).get().then(snap => snap.docs.map(d => d.data()));
+  }
+  return new Promise((resolve,reject)=>{
+    const r = txStore(store).getAll();
+    r.onsuccess = ()=> resolve(r.result);
+    r.onerror = ()=> reject(r.error);
+  });
+}
+
+function dbGet(store, key){
+  if(DB_BACKEND === 'cloud'){
+    return CLOUD_DB.doc(store + '/' + String(key)).get().then(snap => snap.exists ? snap.data() : undefined);
+  }
+  return new Promise((resolve,reject)=>{
+    const r = txStore(store).get(key);
+    r.onsuccess = ()=> resolve(r.result);
+    r.onerror = ()=> reject(r.error);
+  });
+}
+
+function dbPut(store, val){
+  const idField = idFieldFor(store);
+  if(val[idField] === undefined || val[idField] === null) val[idField] = generateId();
+  if(DB_BACKEND === 'cloud'){
+    return CLOUD_DB.collection(store).doc(String(val[idField])).set(val).then(()=> val[idField]);
+  }
+  return new Promise((resolve,reject)=>{
+    const r = txStore(store,'readwrite').put(val);
+    r.onsuccess = ()=> resolve(r.result);
+    r.onerror = ()=> reject(r.error);
+  });
+}
+
+function dbAdd(store, val){
+  // Same as dbPut, but always mints a fresh id first (the previous
+  // IndexedDB-autoincrement behaviour every call site expects).
+  const idField = idFieldFor(store);
+  if(val[idField] === undefined || val[idField] === null) val[idField] = generateId();
+  return dbPut(store, val);
+}
+
+function dbDelete(store, key){
+  if(DB_BACKEND === 'cloud'){
+    return CLOUD_DB.doc(store + '/' + String(key)).delete();
+  }
+  return new Promise((resolve,reject)=>{
+    const r = txStore(store,'readwrite').delete(key);
+    r.onsuccess = ()=> resolve();
+    r.onerror = ()=> reject(r.error);
+  });
+}
+
+async function dbClear(store){
+  if(DB_BACKEND === 'cloud'){
+    const snap = await CLOUD_DB.collection(store).get();
+    await Promise.all(snap.docs.map(d => CLOUD_DB.doc(store + '/' + d.id).delete()));
+    return;
+  }
+  return new Promise((resolve,reject)=>{
+    const r = txStore(store,'readwrite').clear();
+    r.onsuccess = ()=> resolve();
+    r.onerror = ()=> reject(r.error);
+  });
+}
+
+/* Live sync (cloud backend only): keep STATE.cache current when other
+   signed-in staff add, edit or approve records, and refresh the
+   screen automatically — without disturbing a form the user is
+   actively filling in. */
+function startLiveSync(){
+  if(DB_BACKEND !== 'cloud') return;
+  const FORM_VIEWS = new Set(['newasset']);
+  ALL_STORES.forEach(store=>{
+    try{
+      const unsub = CLOUD_DB.collection(store).onSnapshot(async ()=>{
+        if(!STATE.currentUser) return; // not logged in yet — ignore
+        await refreshCache();
+        if(!FORM_VIEWS.has(STATE.currentView)) renderView();
+      }, (err)=>{ console.warn('live sync error on', store, err); });
+      LIVE_SYNC_UNSUBS.push(unsub);
+    } catch(err){ console.warn('could not subscribe to', store, err); }
+  });
+}
+
+/* ---------------------------- STATE ---------------------------- */
+const STATE = {
+  currentUser: null,
+  currentView: 'dashboard',
+  cache: { users:[], categories:[], assets:[], wipProjects:[], wipExpenditure:[], transfers:[], disposals:[], auditLog:[], settings:{} },
+  regFilters: {}
+};
+
+/* ---------------------------- UTILITIES ---------------------------- */
+function fmtMoney(n){
+  n = Number(n)||0;
+  return n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function fmtDate(d){
+  if(!d) return '—';
+  const dt = (d instanceof Date) ? d : new Date(d);
+  if(isNaN(dt)) return '—';
+  const y = dt.getFullYear(), m = String(dt.getMonth()+1).padStart(2,'0'), day = String(dt.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function nowStamp(){ const d=new Date(); return d.toLocaleString(); }
+function escapeHtml(s){
+  return String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+async function sha256(text){
+  const enc = new TextEncoder().encode(text);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function toast(msg, type='info'){
+  const wrap = document.getElementById('toast-wrap');
+  const el = document.createElement('div');
+  el.className = 'toast ' + (type==='success'?'success':type==='error'?'error':'');
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity .3s'; setTimeout(()=>el.remove(),300); }, 3200);
+}
+function closeModal(){
+  document.getElementById('modal-root').innerHTML = '';
+}
+function openModal(title, bodyHtml, footHtml){
+  document.getElementById('modal-root').innerHTML = `
+    <div class="modal-overlay" id="modal-overlay">
+      <div class="modal-box">
+        <div class="modal-head"><h3>${escapeHtml(title)}</h3><button class="modal-close" data-action="close-modal">&times;</button></div>
+        <div class="modal-body">${bodyHtml}</div>
+        ${footHtml ? `<div class="modal-foot">${footHtml}</div>` : ''}
+      </div>
+    </div>`;
+  document.getElementById('modal-overlay').addEventListener('click', (e)=>{
+    if(e.target.id==='modal-overlay') closeModal();
+  });
+}
+function confirmDialog(message, onConfirm, opts={}){
+  openModal(opts.title || 'Please Confirm', `
+    <p>${escapeHtml(message)}</p>
+    ${opts.needReason ? `<div class="field"><label>Reason (required)</label><textarea id="confirm-reason" rows="2"></textarea></div>` : ''}
+  `, `
+    <button class="btn btn-outline" data-action="close-modal">Cancel</button>
+    <button class="btn btn-danger" id="confirm-ok-btn">${opts.okLabel || 'Confirm'}</button>
+  `);
+  document.getElementById('confirm-ok-btn').addEventListener('click', ()=>{
+    let reason = '';
+    if(opts.needReason){
+      reason = document.getElementById('confirm-reason').value.trim();
+      if(!reason){ toast('A reason is required.', 'error'); return; }
+    }
+    closeModal();
+    onConfirm(reason);
+  });
+}
+
+/* ---------------------------- AUDIT LOG ---------------------------- */
+async function logAudit(action, entity, entityId, previousValue, newValue){
+  const entry = {
+    timestamp: new Date().toISOString(),
+    user: STATE.currentUser ? STATE.currentUser.username : 'system',
+    action, entity,
+    entityId: entityId ?? '',
+    previousValue: previousValue!==undefined ? JSON.stringify(previousValue) : '',
+    newValue: newValue!==undefined ? JSON.stringify(newValue) : ''
+  };
+  await dbAdd('auditLog', entry);
+  STATE.cache.auditLog = await dbGetAll('auditLog');
+  scheduleAutoSync(action);
+}
+
+/* ---------------------------- SEED DATA ---------------------------- */
+async function seedIfEmpty(){
+  const users = await dbGetAll('users');
+  if(users.length===0){
+    const hash = await sha256('admin123');
+    await dbAdd('users', {username:'admin', passwordHash:hash, role:'administrator', fullName:'System Administrator', active:true, createdAt:new Date().toISOString()});
+  }
+  const cats = await dbGetAll('categories');
+  if(cats.length===0){
+    const defaults = [
+      {name:'Land', rate:0, method:'Not Depreciated', prefix:'LAND'},
+      {name:'Buildings', rate:2, method:'Straight Line', prefix:'BLD'},
+      {name:'Furniture & Fittings', rate:15, method:'Straight Line', prefix:'FF'},
+      {name:'Motor Vehicles', rate:20, method:'Straight Line', prefix:'MV'},
+      {name:'Office Equipment', rate:20, method:'Straight Line', prefix:'OE'},
+      {name:'Computers & Accessories', rate:20, method:'Straight Line', prefix:'COMP'},
+      {name:'WIP – Construction/Projects', rate:0, method:'Not Depreciated', prefix:'WIP'},
+      {name:'WIP – Software', rate:0, method:'Not Depreciated', prefix:'SW-WIP'}
+    ];
+    for(const c of defaults){ await dbAdd('categories', c); }
+  }
+  const settings = await dbGet('settings','codeConfig');
+  if(!settings){
+    const catList = await dbGetAll('categories');
+    const sequences = {};
+    catList.forEach(c=> sequences[c.name] = 1);
+    await dbAdd('settings', {key:'codeConfig', digits:4, sequences});
+  }
+  const companySettings = await dbGet('settings','company');
+  if(!companySettings){
+    await dbAdd('settings', {key:'company', name:'Company Name Ltd.', currency:'GHS'});
+  }
+}
+
+async function refreshCache(){
+  const [users, categories, assets, wipProjects, wipExpenditure, transfers, disposals, auditLog] = await Promise.all([
+    dbGetAll('users'), dbGetAll('categories'), dbGetAll('assets'), dbGetAll('wipProjects'),
+    dbGetAll('wipExpenditure'), dbGetAll('transfers'), dbGetAll('disposals'), dbGetAll('auditLog')
+  ]);
+  STATE.cache.users = users;
+  STATE.cache.categories = categories;
+  STATE.cache.assets = assets;
+  STATE.cache.wipProjects = wipProjects;
+  STATE.cache.wipExpenditure = wipExpenditure;
+  STATE.cache.transfers = transfers;
+  STATE.cache.disposals = disposals;
+  STATE.cache.auditLog = auditLog.sort((a,b)=> new Date(b.timestamp)-new Date(a.timestamp));
+  const codeConfig = await dbGet('settings','codeConfig');
+  const company = await dbGet('settings','company');
+  const sync = await dbGet('settings','sync') || {key:'sync', webAppUrl:'', secret:'', autoSync:false, lastPush:null, lastPull:null};
+  STATE.cache.settings = {codeConfig, company, sync};
+}
+
+/* ---------------------------- DEPRECIATION ENGINE ---------------------------- */
+function calcDepStartDate(acquisitionDateStr){
+  const d = new Date(acquisitionDateStr + 'T00:00:00');
+  let month = d.getMonth(), year = d.getFullYear();
+  if(d.getDate() > 15){
+    month += 1;
+    if(month > 11){ month = 0; year += 1; }
+  }
+  return new Date(year, month, 1);
+}
+function monthsElapsed(startDate, asOfDate){
+  if(asOfDate < startDate) return 0;
+  let months = (asOfDate.getFullYear()-startDate.getFullYear())*12 + (asOfDate.getMonth()-startDate.getMonth()) + 1;
+  return Math.max(0, months);
+}
+function computeDepreciation(asset, asOfDateStr){
+  const asOf = new Date((asOfDateStr||todayStr()) + 'T00:00:00');
+  const cost = Number(asset.cost)||0;
+  const rate = (Number(asset.depreciationRate)||0)/100;
+  const annual = cost * rate;
+  const monthly = annual/12;
+  const start = asset.depreciationStartDate ? new Date(asset.depreciationStartDate) : null;
+  let accumulated = 0, months = 0;
+  if(start && monthly>0){
+    months = monthsElapsed(start, asOf);
+    accumulated = monthly * months;
+    if(accumulated > cost) accumulated = cost;
+  }
+  const nbv = Math.max(0, cost - accumulated);
+  const currentPeriod = (months>0) ? Math.min(monthly, cost - Math.max(0, accumulated-monthly)) : 0;
+  return { annual, monthly, accumulated, nbv, currentPeriod: Math.max(0,currentPeriod), fullyDepreciated: cost>0 && accumulated>=cost-0.005 };
+}
+
+/* ---------------------------- ASSET CODE GENERATION ---------------------------- */
+async function generateAssetCode(categoryName){
+  const cfg = STATE.cache.settings.codeConfig;
+  const cat = STATE.cache.categories.find(c=>c.name===categoryName);
+  const prefix = (cat && cat.prefix) ? cat.prefix : 'AST';
+  let seq = (cfg.sequences && cfg.sequences[categoryName]) || 1;
+  let code;
+  do{
+    code = `${prefix}-${String(seq).padStart(cfg.digits||4,'0')}`;
+    seq++;
+  } while(STATE.cache.assets.some(a=>a.assetCode===code));
+  cfg.sequences[categoryName] = seq;
+  await dbPut('settings', cfg);
+  return code;
+}
+
+/* ---------------------------- AUTH ---------------------------- */
+async function attemptLogin(username, password){
+  const users = await dbGetAll('users');
+  const user = users.find(u=> u.username.toLowerCase()===username.toLowerCase());
+  if(!user || !user.active) return {ok:false, msg:'Invalid username or password.'};
+  const hash = await sha256(password);
+  if(hash !== user.passwordHash) return {ok:false, msg:'Invalid username or password.'};
+  return {ok:true, user};
+}
+function currentIsAdmin(){ return STATE.currentUser && STATE.currentUser.role==='administrator'; }
+
+/* ---------------------------- NAVIGATION ---------------------------- */
+const NAV_ITEMS = [
+  {view:'dashboard', label:'Dashboard', icon:'&#9635;'},
+  {view:'register', label:'Asset Register', icon:'&#9776;'},
+  {view:'newasset', label:'New Asset', icon:'&#65291;'},
+  {view:'wip', label:'WIP Management', icon:'&#128736;'},
+  {view:'transfers', label:'Transfers', icon:'&#8646;'},
+  {view:'disposals', label:'Disposals', icon:'&#128465;'},
+  {view:'depreciation', label:'Depreciation', icon:'&#128200;'},
+  {view:'reports', label:'Reports', icon:'&#128196;'},
+  {view:'migration', label:'Migration / Import', icon:'&#11014;'},
+  {view:'exports', label:'Exports', icon:'&#11015;'},
+  {view:'administration', label:'Administration', icon:'&#9881;', adminOnly:true},
+  {view:'auditlog', label:'Audit Log', icon:'&#128220;', adminOnly:true}
+];
+const VIEW_TITLES = {
+  dashboard:['Dashboard','Overview of organizational fixed assets'],
+  register:['Asset Register','Search, filter and manage registered assets'],
+  newasset:['New Asset','Register a new fixed asset'],
+  wip:['WIP Management','Manage work-in-progress projects and expenditure'],
+  transfers:['Transfers','Record and approve asset transfers'],
+  disposals:['Disposals','Record and approve asset disposals'],
+  depreciation:['Depreciation','Straight-line depreciation schedule'],
+  reports:['Reports','Financial and management reporting'],
+  migration:['Migration / Import','Migrate existing assets from Excel'],
+  exports:['Exports','Export data to Excel, PDF and CSV'],
+  administration:['Administration','Users, categories, rates and system controls'],
+  auditlog:['Audit Log','Immutable record of system activity']
+};
+
+function renderSidebar(){
+  const nav = document.getElementById('nav-list');
+  nav.innerHTML = NAV_ITEMS.filter(n=> !n.adminOnly || currentIsAdmin())
+    .map(n=> `<button class="nav-item ${STATE.currentView===n.view?'active':''}" data-action="nav" data-view="${n.view}">
+        <span class="nav-icon">${n.icon}</span>${n.label}
+      </button>`).join('');
+}
+function goTo(view){
+  STATE.currentView = view;
+  renderSidebar();
+  const [title, sub] = VIEW_TITLES[view] || [view, ''];
+  document.getElementById('view-title').textContent = title;
+  document.getElementById('view-sub').textContent = sub;
+  renderView();
+}
+
+/* ---------------------------- VIEW RENDER DISPATCH ---------------------------- */
+function renderView(){
+  const c = document.getElementById('view-container');
+  switch(STATE.currentView){
+    case 'dashboard': c.innerHTML = viewDashboard(); afterRenderDashboard(); break;
+    case 'register': c.innerHTML = viewRegister(); break;
+    case 'newasset': c.innerHTML = viewAssetForm(); break;
+    case 'wip': c.innerHTML = viewWip(); break;
+    case 'transfers': c.innerHTML = viewTransfers(); break;
+    case 'disposals': c.innerHTML = viewDisposals(); break;
+    case 'depreciation': c.innerHTML = viewDepreciation(); break;
+    case 'reports': c.innerHTML = viewReports(); break;
+    case 'migration': c.innerHTML = viewMigration(); break;
+    case 'exports': c.innerHTML = viewExports(); break;
+    case 'administration': c.innerHTML = currentIsAdmin() ? viewAdministration() : viewNoAccess(); break;
+    case 'auditlog': c.innerHTML = currentIsAdmin() ? viewAuditLog() : viewNoAccess(); break;
+    default: c.innerHTML = '<div class="empty-state">View not found.</div>';
+  }
+}
+function viewNoAccess(){
+  return `<div class="card"><div class="empty-state"><div class="es-icon">&#128274;</div><h3>Restricted</h3><p>You do not have permission to view this section.</p></div></div>`;
+}
+
+/* ---------------------------- DASHBOARD ---------------------------- */
+function activeAssets(){ return STATE.cache.assets.filter(a=>a.status!=='Disposed'); }
+
+function viewDashboard(){
+  const assets = STATE.cache.assets;
+  const active = activeAssets();
+  const today = todayStr();
+  let totalCost=0, totalAccum=0, currentMonthDep=0, fullyDep=0;
+  active.forEach(a=>{
+    const r = computeDepreciation(a, today);
+    totalCost += Number(a.cost)||0;
+    totalAccum += r.accumulated;
+    currentMonthDep += r.currentPeriod;
+    if(r.fullyDepreciated) fullyDep++;
+  });
+  const totalNbv = totalCost - totalAccum;
+  const wipBalance = STATE.cache.wipProjects.filter(p=>p.status!=='Reclassified')
+    .reduce((s,p)=> s + wipProjectTotal(p.id), 0);
+  const disposedCount = assets.filter(a=>a.status==='Disposed').length;
+  const currency = (STATE.cache.settings.company && STATE.cache.settings.company.currency) || 'GHS';
+
+  // breakdown by category
+  const byCat = {};
+  active.forEach(a=>{ byCat[a.category] = (byCat[a.category]||0) + (Number(a.cost)||0); });
+  const catRows = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+  const maxCat = Math.max(1, ...catRows.map(r=>r[1]));
+
+  const byDept = {};
+  active.forEach(a=>{ const k=a.department||'Unassigned'; byDept[k] = (byDept[k]||0) + (Number(a.cost)||0); });
+  const deptRows = Object.entries(byDept).sort((a,b)=>b[1]-a[1]);
+  const maxDept = Math.max(1, ...deptRows.map(r=>r[1]));
+
+  return `
+    <div class="kpi-grid">
+      <div class="kpi-card"><div class="kpi-label">Total Assets</div><div class="kpi-value">${active.length}</div></div>
+      <div class="kpi-card accent"><div class="kpi-label">Total Acquisition Cost</div><div class="kpi-value">${currency} ${fmtMoney(totalCost)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Accumulated Depreciation</div><div class="kpi-value">${currency} ${fmtMoney(totalAccum)}</div></div>
+      <div class="kpi-card green"><div class="kpi-label">Total Net Book Value</div><div class="kpi-value">${currency} ${fmtMoney(totalNbv)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Current Month Depreciation</div><div class="kpi-value">${currency} ${fmtMoney(currentMonthDep)}</div></div>
+      <div class="kpi-card accent"><div class="kpi-label">WIP Balance</div><div class="kpi-value">${currency} ${fmtMoney(wipBalance)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Disposed Assets</div><div class="kpi-value">${disposedCount}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Fully Depreciated</div><div class="kpi-value">${fullyDep}</div></div>
+    </div>
+    <div class="card">
+      <h3>Cost by Asset Category</h3>
+      ${catRows.length ? catRows.map(([name,val])=>`
+        <div class="bar-row">
+          <div class="bar-label">${escapeHtml(name)}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${(val/maxCat*100).toFixed(1)}%"></div></div>
+          <div class="bar-value">${currency} ${fmtMoney(val)}</div>
+        </div>`).join('') : `<p class="text-muted">No assets registered yet.</p>`}
+    </div>
+    <div class="card">
+      <h3>Cost by Department</h3>
+      ${deptRows.length ? deptRows.map(([name,val])=>`
+        <div class="bar-row">
+          <div class="bar-label">${escapeHtml(name)}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${(val/maxDept*100).toFixed(1)}%;background:var(--accent)"></div></div>
+          <div class="bar-value">${currency} ${fmtMoney(val)}</div>
+        </div>`).join('') : `<p class="text-muted">No assets registered yet.</p>`}
+    </div>
+    <div class="card">
+      <h3>Pending Approvals</h3>
+      <div id="dash-pending"></div>
+    </div>
+  `;
+}
+function afterRenderDashboard(){
+  const pendingT = STATE.cache.transfers.filter(t=>t.status==='Pending Approval');
+  const pendingD = STATE.cache.disposals.filter(d=>d.status==='Pending Approval');
+  const el = document.getElementById('dash-pending');
+  if(!el) return;
+  if(pendingT.length===0 && pendingD.length===0){
+    el.innerHTML = `<p class="text-muted">No pending approvals.</p>`;
+    return;
+  }
+  let html = '<div class="table-wrap"><table><thead><tr><th>Type</th><th>Asset</th><th>Requested</th><th>Reason</th></tr></thead><tbody>';
+  pendingT.forEach(t=>{
+    const a = STATE.cache.assets.find(x=>x.id===t.assetId);
+    html += `<tr><td><span class="badge pending">Transfer</span></td><td>${a?escapeHtml(a.assetCode):'—'}</td><td>${escapeHtml(t.date)}</td><td>${escapeHtml(t.reason)}</td></tr>`;
+  });
+  pendingD.forEach(d=>{
+    const a = STATE.cache.assets.find(x=>x.id===d.assetId);
+    html += `<tr><td><span class="badge pending">Disposal</span></td><td>${a?escapeHtml(a.assetCode):'—'}</td><td>${escapeHtml(d.disposalDate)}</td><td>${escapeHtml(d.reason)}</td></tr>`;
+  });
+  html += '</tbody></table></div>';
+  el.innerHTML = html;
+}
+function wipProjectTotal(projectId){
+  return STATE.cache.wipExpenditure.filter(e=>e.projectId===projectId).reduce((s,e)=> s+(Number(e.amount)||0), 0);
+}
+
+/* ---------------------------- ASSET REGISTER ---------------------------- */
+function viewRegister(){
+  const f = STATE.regFilters;
+  const cats = STATE.cache.categories.map(c=>c.name);
+  const depts = [...new Set(STATE.cache.assets.map(a=>a.department).filter(Boolean))];
+  const locs = [...new Set(STATE.cache.assets.map(a=>a.location).filter(Boolean))];
+  const statuses = ['Active','WIP','Fully Depreciated','Transferred','Disposed','Reclassified','Under Review'];
+
+  let rows = STATE.cache.assets.slice();
+  if(f.q){
+    const q = f.q.toLowerCase();
+    rows = rows.filter(a => [a.assetCode,a.assetTag,a.description,a.serialNumber].some(v=> (v||'').toLowerCase().includes(q)));
+  }
+  if(f.category) rows = rows.filter(a=>a.category===f.category);
+  if(f.department) rows = rows.filter(a=>a.department===f.department);
+  if(f.location) rows = rows.filter(a=>a.location===f.location);
+  if(f.status) rows = rows.filter(a=>a.status===f.status);
+  if(f.dateFrom) rows = rows.filter(a=> a.acquisitionDate >= f.dateFrom);
+  if(f.dateTo) rows = rows.filter(a=> a.acquisitionDate <= f.dateTo);
+  if(!f.showDisposed) rows = rows.filter(a=> a.status!=='Disposed');
+  rows.sort((a,b)=> (a.assetCode||'').localeCompare(b.assetCode||''));
+
+  const currency = (STATE.cache.settings.company && STATE.cache.settings.company.currency) || 'GHS';
+  const today = todayStr();
+
+  return `
+    <div class="card">
+      <div class="toolbar">
+        <div class="left">
+          <input class="search-input" id="reg-q" placeholder="Search code, tag, description, serial..." value="${escapeHtml(f.q||'')}">
+          <select id="reg-category"><option value="">All Categories</option>${cats.map(c=>`<option ${f.category===c?'selected':''}>${escapeHtml(c)}</option>`).join('')}</select>
+          <select id="reg-department"><option value="">All Departments</option>${depts.map(d=>`<option ${f.department===d?'selected':''}>${escapeHtml(d)}</option>`).join('')}</select>
+          <select id="reg-location"><option value="">All Locations</option>${locs.map(l=>`<option ${f.location===l?'selected':''}>${escapeHtml(l)}</option>`).join('')}</select>
+          <select id="reg-status"><option value="">All Statuses</option>${statuses.map(s=>`<option ${f.status===s?'selected':''}>${s}</option>`).join('')}</select>
+          <input type="date" id="reg-datefrom" value="${f.dateFrom||''}" title="Acquired from">
+          <input type="date" id="reg-dateto" value="${f.dateTo||''}" title="Acquired to">
+          <label style="font-size:12.5px;display:flex;align-items:center;gap:5px;"><input type="checkbox" id="reg-showdisposed" ${f.showDisposed?'checked':''}> Show disposed</label>
+        </div>
+        <div class="right">
+          <button class="btn btn-outline btn-sm" data-action="reg-clear">Clear Filters</button>
+          <button class="btn btn-accent btn-sm" data-action="nav" data-view="newasset">+ New Asset</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Asset Code</th><th>Description</th><th>Category</th><th>Location</th><th>Department</th>
+            <th class="text-right">Cost</th><th class="text-right">Acc. Dep.</th><th class="text-right">NBV</th><th>Status</th><th></th>
+          </tr></thead>
+          <tbody>
+            ${rows.length===0 ? `<tr><td colspan="10"><div class="empty-state">No assets match the current filters.</div></td></tr>` :
+              rows.map(a=>{
+                const r = computeDepreciation(a, today);
+                return `<tr>
+                  <td><strong>${escapeHtml(a.assetCode)}</strong></td>
+                  <td>${escapeHtml(a.description)}</td>
+                  <td>${escapeHtml(a.category)}</td>
+                  <td>${escapeHtml(a.location||'—')}</td>
+                  <td>${escapeHtml(a.department||'—')}</td>
+                  <td class="text-right money">${currency} ${fmtMoney(a.cost)}</td>
+                  <td class="text-right money">${currency} ${fmtMoney(r.accumulated)}</td>
+                  <td class="text-right money">${currency} ${fmtMoney(r.nbv)}</td>
+                  <td>${statusBadge(a.status)}</td>
+                  <td><button class="link-btn" data-action="view-asset" data-id="${a.id}">View</button></td>
+                </tr>`;
+              }).join('')}
+          </tbody>
+        </table>
+      </div>
+      <p class="note" style="margin-top:10px;">${rows.length} of ${STATE.cache.assets.length} asset record(s) shown.</p>
+    </div>
+  `;
+}
+function statusBadge(status){
+  const map = {'Active':'active','WIP':'wip','Fully Depreciated':'fully','Transferred':'transferred','Disposed':'disposed','Reclassified':'reclassified','Under Review':'review'};
+  return `<span class="badge ${map[status]||'active'}">${escapeHtml(status||'Active')}</span>`;
+}
+
+function bindRegisterFilters(){
+  const ids = ['reg-q','reg-category','reg-department','reg-location','reg-status','reg-datefrom','reg-dateto','reg-showdisposed'];
+  ids.forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    const evt = (el.tagName==='SELECT' || el.type==='date' || el.type==='checkbox') ? 'change' : 'input';
+    el.addEventListener(evt, ()=>{
+      STATE.regFilters = {
+        q: document.getElementById('reg-q').value.trim(),
+        category: document.getElementById('reg-category').value,
+        department: document.getElementById('reg-department').value,
+        location: document.getElementById('reg-location').value,
+        status: document.getElementById('reg-status').value,
+        dateFrom: document.getElementById('reg-datefrom').value,
+        dateTo: document.getElementById('reg-dateto').value,
+        showDisposed: document.getElementById('reg-showdisposed').checked
+      };
+      renderView();
+    });
+  });
+}
+
+/* ---------------------------- ASSET DETAIL MODAL ---------------------------- */
+function showAssetDetail(id){
+  const a = STATE.cache.assets.find(x=>x.id===id);
+  if(!a) return;
+  const r = computeDepreciation(a, todayStr());
+  const currency = (STATE.cache.settings.company && STATE.cache.settings.company.currency) || 'GHS';
+  const canDelete = currentIsAdmin();
+  const transfersForAsset = STATE.cache.transfers.filter(t=>t.assetId===id);
+  const disposalForAsset = STATE.cache.disposals.find(d=>d.assetId===id);
+
+  const body = `
+    <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+      <div><strong>Asset Code</strong><div>${escapeHtml(a.assetCode)}</div></div>
+      <div><strong>Status</strong><div>${statusBadge(a.status)}</div></div>
+      <div><strong>Category</strong><div>${escapeHtml(a.category)}</div></div>
+      <div><strong>Asset Tag</strong><div>${escapeHtml(a.assetTag||'—')}</div></div>
+      <div class="span2" style="grid-column:1/-1;"><strong>Description</strong><div>${escapeHtml(a.description)}</div></div>
+      <div><strong>Acquisition Date</strong><div>${escapeHtml(a.acquisitionDate)}</div></div>
+      <div><strong>Cost</strong><div>${currency} ${fmtMoney(a.cost)}</div></div>
+      <div><strong>Depreciation Start</strong><div>${fmtDate(a.depreciationStartDate)}</div></div>
+      <div><strong>Depreciation Rate</strong><div>${a.depreciationRate}% (${escapeHtml(a.depreciationMethod)})</div></div>
+      <div><strong>Accumulated Depreciation</strong><div>${currency} ${fmtMoney(r.accumulated)}</div></div>
+      <div><strong>Net Book Value</strong><div>${currency} ${fmtMoney(r.nbv)}</div></div>
+      <div><strong>Location</strong><div>${escapeHtml(a.location||'—')}</div></div>
+      <div><strong>Department</strong><div>${escapeHtml(a.department||'—')}</div></div>
+      <div><strong>Staff Assigned</strong><div>${escapeHtml(a.staffAssigned||'—')}</div></div>
+      <div><strong>Cost Centre</strong><div>${escapeHtml(a.costCentre||'—')}</div></div>
+      <div><strong>Serial Number</strong><div>${escapeHtml(a.serialNumber||'—')}</div></div>
+      <div><strong>Supplier</strong><div>${escapeHtml(a.supplier||'—')}</div></div>
+    </div>
+    ${a.remarks ? `<p style="margin-top:12px;"><strong>Remarks:</strong> ${escapeHtml(a.remarks)}</p>` : ''}
+    ${disposalForAsset ? `<div class="callout danger" style="margin-top:12px;">Disposed on ${escapeHtml(disposalForAsset.disposalDate)} — Gain/Loss: ${currency} ${fmtMoney(disposalForAsset.gainLoss)}</div>` : ''}
+    ${transfersForAsset.length ? `<p style="margin-top:12px;"><strong>Transfer history:</strong> ${transfersForAsset.length} record(s) — see Transfers module.</p>` : ''}
+  `;
+  const foot = `
+    <button class="btn btn-outline" data-action="close-modal">Close</button>
+    ${a.status!=='Disposed' ? `<button class="btn btn-outline" data-action="edit-asset" data-id="${a.id}">Edit</button>` : ''}
+    ${canDelete && a.status!=='Disposed' ? `<button class="btn btn-danger" data-action="delete-asset" data-id="${a.id}">Delete</button>` : ''}
+  `;
+  openModal(`Asset ${a.assetCode}`, body, foot);
+}
+
+/* ---------------------------- ASSET FORM (NEW / EDIT) ---------------------------- */
+function viewAssetForm(editId){
+  const editing = STATE.cache.assets.find(a=>a.id===editId);
+  const cats = STATE.cache.categories;
+  const currency = (STATE.cache.settings.company && STATE.cache.settings.company.currency) || 'GHS';
+  return `
+    <form id="asset-form" class="card">
+      <input type="hidden" name="id" value="${editing?editing.id:''}">
+      <fieldset>
+        <legend>Identification</legend>
+        <div class="form-grid">
+          <div class="field"><label>Asset Code</label><input type="text" name="assetCode" value="${editing?escapeHtml(editing.assetCode):'Auto-generated on save'}" ${editing?'':'disabled'} ${editing && currentIsAdmin() ? '' : (editing?'disabled':'')}>
+            <span class="note">${editing && currentIsAdmin() ? 'Administrators may override the code.' : 'Generated automatically from category prefix.'}</span></div>
+          <div class="field"><label>Asset Tag</label><input type="text" name="assetTag" value="${editing?escapeHtml(editing.assetTag||''):''}"></div>
+          <div class="field"><label>Asset Category *</label>
+            <select name="category" id="asset-category" required>
+              <option value="">Select category</option>
+              ${cats.map(c=>`<option value="${escapeHtml(c.name)}" ${editing&&editing.category===c.name?'selected':''}>${escapeHtml(c.name)}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field span3"><label>Asset Description *</label><input type="text" name="description" required value="${editing?escapeHtml(editing.description):''}"></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Acquisition Information</legend>
+        <div class="form-grid">
+          <div class="field"><label>Acquisition Date *</label><input type="date" name="acquisitionDate" id="asset-acqdate" required value="${editing?editing.acquisitionDate:''}"></div>
+          <div class="field"><label>Supplier / Vendor</label><input type="text" name="supplier" value="${editing?escapeHtml(editing.supplier||''):''}"></div>
+          <div class="field"><label>Invoice / Reference No.</label><input type="text" name="invoiceRef" value="${editing?escapeHtml(editing.invoiceRef||''):''}"></div>
+          <div class="field"><label>Asset Cost *</label><input type="number" step="0.01" min="0" name="cost" id="asset-cost" required value="${editing?editing.cost:''}"></div>
+          <div class="field"><label>Currency</label><input type="text" name="currency" value="${editing?escapeHtml(editing.currency||currency):currency}"></div>
+          <div class="field"><label>Depreciation Start Date</label><input type="date" name="depreciationStartDate" id="asset-depstart" value="${editing?editing.depreciationStartDate:''}">
+            <span class="note">Auto-calculated using the half-month convention. Administrators may override.</span></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Classification</legend>
+        <div class="form-grid">
+          <div class="field"><label>Location</label><input type="text" name="location" value="${editing?escapeHtml(editing.location||''):''}"></div>
+          <div class="field"><label>Department</label><input type="text" name="department" value="${editing?escapeHtml(editing.department||''):''}"></div>
+          <div class="field"><label>Project</label><input type="text" name="project" value="${editing?escapeHtml(editing.project||''):''}"></div>
+          <div class="field"><label>Staff Assigned</label><input type="text" name="staffAssigned" value="${editing?escapeHtml(editing.staffAssigned||''):''}"></div>
+          <div class="field"><label>Cost Centre</label><input type="text" name="costCentre" value="${editing?escapeHtml(editing.costCentre||''):''}"></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Depreciation Information</legend>
+        <div class="form-grid">
+          <div class="field"><label>Depreciation Rate (%)</label><input type="number" step="0.01" min="0" max="100" name="depreciationRate" id="asset-rate" value="${editing?editing.depreciationRate:''}" ${currentIsAdmin()?'':'readonly'}></div>
+          <div class="field"><label>Depreciation Method</label><input type="text" name="depreciationMethod" id="asset-method" value="${editing?escapeHtml(editing.depreciationMethod||''):''}" readonly></div>
+          <div class="field"><label>Status</label>
+            <select name="status">
+              ${['Active','WIP','Fully Depreciated','Transferred','Disposed','Reclassified','Under Review'].map(s=>`<option ${(editing?editing.status:'Active')===s?'selected':''}>${s}</option>`).join('')}
+            </select>
+            <span class="note">Status is normally managed automatically by transfers, disposals and reclassification. Manual changes here require care.</span>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Additional Information</legend>
+        <div class="form-grid">
+          <div class="field"><label>Serial Number</label><input type="text" name="serialNumber" value="${editing?escapeHtml(editing.serialNumber||''):''}"></div>
+          <div class="field"><label>Warranty Expiry</label><input type="date" name="warrantyExpiry" value="${editing?editing.warrantyExpiry||'':''}"></div>
+          <div class="field span2"><label>Supporting Document Reference</label><input type="text" name="docRef" value="${editing?escapeHtml(editing.docRef||''):''}"></div>
+          <div class="field span3"><label>Remarks</label><textarea name="remarks" rows="2">${editing?escapeHtml(editing.remarks||''):''}</textarea></div>
+        </div>
+      </fieldset>
+
+      <div class="actions-row">
+        <button type="submit" class="btn btn-accent">${editing?'Save Changes':'Register Asset'}</button>
+        <button type="button" class="btn btn-outline" data-action="nav" data-view="register">Cancel</button>
+      </div>
+    </form>
+  `;
+}
+function bindAssetFormAuto(){
+  const catSel = document.getElementById('asset-category');
+  const acqDate = document.getElementById('asset-acqdate');
+  const depStart = document.getElementById('asset-depstart');
+  const rateInput = document.getElementById('asset-rate');
+  const methodInput = document.getElementById('asset-method');
+  if(!catSel) return;
+  function applyCategoryDefaults(){
+    const cat = STATE.cache.categories.find(c=>c.name===catSel.value);
+    if(cat){
+      if(!rateInput.value || !rateInput.dataset.touched) rateInput.value = cat.rate;
+      methodInput.value = cat.method;
+    }
+  }
+  catSel.addEventListener('change', applyCategoryDefaults);
+  rateInput.addEventListener('input', ()=> rateInput.dataset.touched='1');
+  if(catSel.value) applyCategoryDefaults();
+  acqDate.addEventListener('change', ()=>{
+    if(acqDate.value && (!depStart.value || !depStart.dataset.touched)){
+      depStart.value = fmtDate(calcDepStartDate(acqDate.value));
+    }
+  });
+  depStart.addEventListener('input', ()=> depStart.dataset.touched='1');
+}
+
+async function submitAssetForm(form){
+  const fd = new FormData(form);
+  const id = fd.get('id') ? Number(fd.get('id')) : null;
+  const category = fd.get('category');
+  if(!category){ toast('Please select an asset category.', 'error'); return; }
+  const cat = STATE.cache.categories.find(c=>c.name===category);
+
+  const data = {
+    assetTag: fd.get('assetTag')||'',
+    category,
+    description: fd.get('description'),
+    acquisitionDate: fd.get('acquisitionDate'),
+    supplier: fd.get('supplier')||'',
+    invoiceRef: fd.get('invoiceRef')||'',
+    cost: Number(fd.get('cost'))||0,
+    currency: fd.get('currency')||'GHS',
+    depreciationStartDate: fd.get('depreciationStartDate') || fmtDate(calcDepStartDate(fd.get('acquisitionDate'))),
+    location: fd.get('location')||'',
+    department: fd.get('department')||'',
+    project: fd.get('project')||'',
+    staffAssigned: fd.get('staffAssigned')||'',
+    costCentre: fd.get('costCentre')||'',
+    depreciationRate: fd.get('depreciationRate')!=='' ? Number(fd.get('depreciationRate')) : (cat?cat.rate:0),
+    depreciationMethod: fd.get('depreciationMethod') || (cat?cat.method:'Straight Line'),
+    status: fd.get('status')||'Active',
+    serialNumber: fd.get('serialNumber')||'',
+    warrantyExpiry: fd.get('warrantyExpiry')||'',
+    docRef: fd.get('docRef')||'',
+    remarks: fd.get('remarks')||''
+  };
+  if(!data.description || !data.acquisitionDate || !data.cost){
+    toast('Please complete all mandatory fields.', 'error'); return;
+  }
+
+  if(id){
+    const existing = STATE.cache.assets.find(a=>a.id===id);
+    const updated = {...existing, ...data};
+    const codeOverride = fd.get('assetCode');
+    if(currentIsAdmin() && codeOverride && codeOverride!==existing.assetCode){
+      if(STATE.cache.assets.some(a=>a.assetCode===codeOverride && a.id!==id)){
+        toast('Asset code already in use.', 'error'); return;
+      }
+      updated.assetCode = codeOverride;
+    }
+    await dbPut('assets', updated);
+    await logAudit('Update Asset', 'Asset', updated.assetCode, existing, updated);
+    toast('Asset updated.', 'success');
+  } else {
+    data.assetCode = await generateAssetCode(category);
+    data.createdAt = new Date().toISOString();
+    data.createdBy = STATE.currentUser.username;
+    const newId = await dbAdd('assets', data);
+    await logAudit('Create Asset', 'Asset', data.assetCode, null, data);
+    toast(`Asset ${data.assetCode} registered.`, 'success');
+  }
+  await refreshCache();
+  goTo('register');
+}
+
+async function deleteAsset(id){
+  const a = STATE.cache.assets.find(x=>x.id===id);
+  if(!a) return;
+  confirmDialog(`Permanently delete asset ${a.assetCode}? This action requires a reason and will be recorded in the audit trail.`, async (reason)=>{
+    await dbDelete('assets', id);
+    await logAudit('Delete Asset', 'Asset', a.assetCode, a, {reason});
+    await refreshCache();
+    closeModal();
+    toast('Asset deleted.', 'success');
+    renderView();
+  }, {needReason:true, okLabel:'Delete Asset', title:'Delete Asset'});
+}
+
+/* ---------------------------- WIP MANAGEMENT ---------------------------- */
+function viewWip(){
+  const projects = STATE.cache.wipProjects.slice().sort((a,b)=> (b.startDate||'').localeCompare(a.startDate||''));
+  const currency = (STATE.cache.settings.company && STATE.cache.settings.company.currency) || 'GHS';
+  return `
+    <div class="toolbar">
+      <div class="left"><h3 style="margin:0;">WIP Projects</h3></div>
+      <div class="right"><button class="btn btn-accent btn-sm" data-action="open-wip-project-form">+ New WIP Project</button></div>
+    </div>
+    <div class="table-wrap card" style="padding:0;">
+      <table>
+        <thead><tr><th>Code</th><th>Project Name</th><th>Location</th><th>Manager</th><th>Status</th><th class="text-right">WIP Balance</th><th></th></tr></thead>
+        <tbody>
+          ${projects.length===0 ? `<tr><td colspan="7"><div class="empty-state">No WIP projects yet.</div></td></tr>` :
+            projects.map(p=>{
+              const total = wipProjectTotal(p.id);
+              return `<tr>
+                <td><strong>${escapeHtml(p.code)}</strong></td>
+                <td>${escapeHtml(p.name)}</td>
+                <td>${escapeHtml(p.location||'—')}</td>
+                <td>${escapeHtml(p.manager||'—')}</td>
+                <td>${statusBadge(p.status)}</td>
+                <td class="text-right money">${currency} ${fmtMoney(total)}</td>
+                <td>
+                  <button class="link-btn" data-action="open-wip-expenditure-form" data-id="${p.id}">+ Expenditure</button>
+                  <button class="link-btn" data-action="view-wip-project" data-id="${p.id}">View</button>
+                  ${currentIsAdmin() && p.status!=='Reclassified' ? `<button class="link-btn" data-action="open-wip-reclassify-form" data-id="${p.id}">Reclassify</button>` : ''}
+                </td>
+              </tr>`;
+            }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+function wipProjectForm(){
+  const body = `
+    <form id="wip-project-form">
+      <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+        <div class="field"><label>Project Code *</label><input type="text" name="code" required placeholder="e.g. WIP-PRJ-001"></div>
+        <div class="field"><label>Project Name *</label><input type="text" name="name" required></div>
+        <div class="field"><label>Project Location</label><input type="text" name="location"></div>
+        <div class="field"><label>Project Manager</label><input type="text" name="manager"></div>
+        <div class="field"><label>Start Date *</label><input type="date" name="startDate" required value="${todayStr()}"></div>
+        <div class="field"><label>Expected Completion Date</label><input type="date" name="expectedCompletion"></div>
+        <div class="field span2" style="grid-column:1/-1;"><label>Description</label><textarea name="description" rows="2"></textarea></div>
+      </div>
+    </form>`;
+  const foot = `<button class="btn btn-outline" data-action="close-modal">Cancel</button><button class="btn btn-accent" id="wip-project-save">Create Project</button>`;
+  openModal('New WIP Project', body, foot);
+  document.getElementById('wip-project-save').addEventListener('click', async ()=>{
+    const form = document.getElementById('wip-project-form');
+    const fd = new FormData(form);
+    if(!fd.get('code') || !fd.get('name') || !fd.get('startDate')){ toast('Please complete required fields.', 'error'); return; }
+    const data = {
+      code: fd.get('code'), name: fd.get('name'), location: fd.get('location')||'',
+      manager: fd.get('manager')||'', startDate: fd.get('startDate'),
+      expectedCompletion: fd.get('expectedCompletion')||'', status:'In Progress',
+      description: fd.get('description')||''
+    };
+    const newId = await dbAdd('wipProjects', data);
+    await logAudit('Create WIP Project', 'WIP Project', data.code, null, data);
+    await refreshCache();
+    closeModal();
+    toast('WIP project created.', 'success');
+    renderView();
+  });
+}
+function wipExpenditureForm(projectId){
+  const p = STATE.cache.wipProjects.find(x=>x.id===projectId);
+  if(!p) return;
+  const body = `
+    <p class="note">Project: <strong>${escapeHtml(p.code)} — ${escapeHtml(p.name)}</strong></p>
+    <form id="wip-exp-form">
+      <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+        <div class="field"><label>Date *</label><input type="date" name="date" required value="${todayStr()}"></div>
+        <div class="field"><label>Expenditure Type *</label>
+          <select name="type" required>
+            ${['Materials','Labour','Professional Fees','Contractor Costs','Equipment','Other'].map(t=>`<option>${t}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field"><label>Amount *</label><input type="number" step="0.01" min="0" name="amount" required></div>
+        <div class="field span2" style="grid-column:1/-1;"><label>Description</label><input type="text" name="description"></div>
+      </div>
+    </form>`;
+  const foot = `<button class="btn btn-outline" data-action="close-modal">Cancel</button><button class="btn btn-accent" id="wip-exp-save">Record Expenditure</button>`;
+  openModal('Record WIP Expenditure', body, foot);
+  document.getElementById('wip-exp-save').addEventListener('click', async ()=>{
+    const fd = new FormData(document.getElementById('wip-exp-form'));
+    if(!fd.get('date') || !fd.get('amount')){ toast('Please complete required fields.', 'error'); return; }
+    const data = { projectId, date: fd.get('date'), type: fd.get('type'), amount: Number(fd.get('amount')), description: fd.get('description')||'', enteredBy: STATE.currentUser.username };
+    await dbAdd('wipExpenditure', data);
+    await logAudit('Record WIP Expenditure', 'WIP Expenditure', p.code, null, data);
+    await refreshCache();
+    closeModal();
+    toast('Expenditure recorded.', 'success');
+    renderView();
+  });
+}
+function viewWipProjectDetail(projectId){
+  const p = STATE.cache.wipProjects.find(x=>x.id===projectId);
+  if(!p) return;
+  const exps = STATE.cache.wipExpenditure.filter(e=>e.projectId===projectId).sort((a,b)=> a.date.localeCompare(b.date));
+  const currency = (STATE.cache.settings.company && STATE.cache.settings.company.currency) || 'GHS';
+  const total = exps.reduce((s,e)=>s+Number(e.amount),0);
+  const body = `
+    <p><strong>${escapeHtml(p.code)}</strong> — ${escapeHtml(p.name)} ${statusBadge(p.status)}</p>
+    <p class="note">Location: ${escapeHtml(p.location||'—')} · Manager: ${escapeHtml(p.manager||'—')} · Start: ${escapeHtml(p.startDate)} · Expected Completion: ${escapeHtml(p.expectedCompletion||'—')}</p>
+    ${p.description ? `<p>${escapeHtml(p.description)}</p>` : ''}
+    <div class="table-wrap"><table>
+      <thead><tr><th>Date</th><th>Type</th><th>Description</th><th class="text-right">Amount</th></tr></thead>
+      <tbody>
+        ${exps.length===0?`<tr><td colspan="4">No expenditure recorded.</td></tr>`:
+          exps.map(e=>`<tr><td>${escapeHtml(e.date)}</td><td>${escapeHtml(e.type)}</td><td>${escapeHtml(e.description||'—')}</td><td class="text-right money">${currency} ${fmtMoney(e.amount)}</td></tr>`).join('')}
+      </tbody>
+      <tfoot><tr><td colspan="3" class="text-right"><strong>Total WIP</strong></td><td class="text-right money"><strong>${currency} ${fmtMoney(total)}</strong></td></tr></tfoot>
+    </table></div>
+  `;
+  openModal('WIP Project Detail', body, `<button class="btn btn-outline" data-action="close-modal">Close</button>`);
+}
+function wipReclassifyForm(projectId){
+  const p = STATE.cache.wipProjects.find(x=>x.id===projectId);
+  if(!p) return;
+  const total = wipProjectTotal(projectId);
+  const cats = STATE.cache.categories.filter(c=>!c.name.startsWith('WIP'));
+  const body = `
+    <p class="note">Reclassifying <strong>${escapeHtml(p.code)} — ${escapeHtml(p.name)}</strong> into a fixed asset.</p>
+    <form id="wip-reclass-form">
+      <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+        <div class="field"><label>New Asset Category *</label>
+          <select name="category" id="reclass-category" required><option value="">Select</option>${cats.map(c=>`<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('')}</select>
+        </div>
+        <div class="field"><label>Asset Description *</label><input type="text" name="description" required value="${escapeHtml(p.name)}"></div>
+        <div class="field"><label>Location</label><input type="text" name="location" value="${escapeHtml(p.location||'')}"></div>
+        <div class="field"><label>Department</label><input type="text" name="department"></div>
+        <div class="field"><label>Staff Assigned</label><input type="text" name="staffAssigned"></div>
+        <div class="field"><label>Capitalized Cost *</label><input type="number" step="0.01" name="capitalizedCost" required value="${total}"></div>
+        <div class="field"><label>Completion Date *</label><input type="date" name="completionDate" required value="${todayStr()}"></div>
+      </div>
+    </form>`;
+  const foot = `<button class="btn btn-outline" data-action="close-modal">Cancel</button><button class="btn btn-accent" id="wip-reclass-save">Reclassify &amp; Create Asset</button>`;
+  openModal('Reclassify WIP', body, foot);
+  document.getElementById('wip-reclass-save').addEventListener('click', async ()=>{
+    const fd = new FormData(document.getElementById('wip-reclass-form'));
+    const category = fd.get('category');
+    if(!category || !fd.get('description') || !fd.get('capitalizedCost') || !fd.get('completionDate')){
+      toast('Please complete required fields.', 'error'); return;
+    }
+    const cat = STATE.cache.categories.find(c=>c.name===category);
+    const depStart = fmtDate(calcDepStartDate(fd.get('completionDate')));
+    const assetCode = await generateAssetCode(category);
+    const assetData = {
+      assetCode, assetTag:'', category, description: fd.get('description'),
+      acquisitionDate: fd.get('completionDate'), supplier:'', invoiceRef:'',
+      cost: Number(fd.get('capitalizedCost')), currency:(STATE.cache.settings.company&&STATE.cache.settings.company.currency)||'GHS',
+      depreciationStartDate: depStart, location: fd.get('location')||'', department: fd.get('department')||'',
+      project: p.name, staffAssigned: fd.get('staffAssigned')||'', costCentre:'',
+      depreciationRate: cat?cat.rate:0, depreciationMethod: cat?cat.method:'Straight Line',
+      status:'Active', serialNumber:'', warrantyExpiry:'', docRef:'', remarks:`Reclassified from WIP project ${p.code}`,
+      createdAt: new Date().toISOString(), createdBy: STATE.currentUser.username, reclassifiedFromWip: p.id
+    };
+    await dbAdd('assets', assetData);
+    const updatedProject = {...p, status:'Reclassified'};
+    await dbPut('wipProjects', updatedProject);
+    await logAudit('Reclassify WIP', 'WIP Project', p.code, p, {newAssetCode: assetCode, ...assetData});
+    await refreshCache();
+    closeModal();
+    toast(`WIP reclassified as asset ${assetCode}.`, 'success');
+    goTo('wip');
+  });
+}
+
+/* ---------------------------- TRANSFERS ---------------------------- */
+function viewTransfers(){
+  const transfers = STATE.cache.transfers.slice().sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  return `
+    <div class="toolbar">
+      <div class="left"><h3 style="margin:0;">Asset Transfers</h3></div>
+      <div class="right"><button class="btn btn-accent btn-sm" data-action="open-transfer-form">+ New Transfer</button></div>
+    </div>
+    <div class="table-wrap card" style="padding:0;">
+      <table>
+        <thead><tr><th>Date</th><th>Asset</th><th>From</th><th>To</th><th>Reason</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          ${transfers.length===0 ? `<tr><td colspan="7"><div class="empty-state">No transfers recorded.</div></td></tr>` :
+            transfers.map(t=>{
+              const a = STATE.cache.assets.find(x=>x.id===t.assetId);
+              return `<tr>
+                <td>${escapeHtml(t.date)}</td>
+                <td>${a?escapeHtml(a.assetCode):'—'}</td>
+                <td>${escapeHtml(t.prevDepartment||'—')} / ${escapeHtml(t.prevLocation||'—')}</td>
+                <td>${escapeHtml(t.newDepartment||'—')} / ${escapeHtml(t.newLocation||'—')}</td>
+                <td>${escapeHtml(t.reason)}</td>
+                <td><span class="badge ${t.status==='Approved'?'approved':t.status==='Rejected'?'disposed':'pending'}">${escapeHtml(t.status)}</span></td>
+                <td>${currentIsAdmin() && t.status==='Pending Approval' ? `<button class="link-btn" data-action="approve-transfer" data-id="${t.id}">Approve</button> <button class="link-btn danger" data-action="reject-transfer" data-id="${t.id}">Reject</button>` : ''}</td>
+              </tr>`;
+            }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+function transferForm(){
+  const assets = activeAssets().filter(a=>a.status!=='Disposed');
+  const body = `
+    <form id="transfer-form">
+      <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+        <div class="field span2" style="grid-column:1/-1;"><label>Asset *</label>
+          <select name="assetId" id="transfer-asset" required>
+            <option value="">Select asset</option>
+            ${assets.map(a=>`<option value="${a.id}">${escapeHtml(a.assetCode)} — ${escapeHtml(a.description)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field"><label>New Department</label><input type="text" name="newDepartment"></div>
+        <div class="field"><label>New Location</label><input type="text" name="newLocation"></div>
+        <div class="field span2" style="grid-column:1/-1;"><label>New Staff Assigned</label><input type="text" name="newStaff"></div>
+        <div class="field"><label>Transfer Date *</label><input type="date" name="date" required value="${todayStr()}"></div>
+        <div class="field"><label>Approved By</label><input type="text" name="approvedBy" value="${currentIsAdmin()?STATE.currentUser.username:''}" ${currentIsAdmin()?'':'disabled'}></div>
+        <div class="field span2" style="grid-column:1/-1;"><label>Reason *</label><input type="text" name="reason" required></div>
+        <div class="field span2" style="grid-column:1/-1;"><label>Comments</label><textarea name="comments" rows="2"></textarea></div>
+      </div>
+    </form>`;
+  const foot = `<button class="btn btn-outline" data-action="close-modal">Cancel</button><button class="btn btn-accent" id="transfer-save">Submit Transfer</button>`;
+  openModal('New Asset Transfer', body, foot);
+  document.getElementById('transfer-save').addEventListener('click', async ()=>{
+    const fd = new FormData(document.getElementById('transfer-form'));
+    const assetId = Number(fd.get('assetId'));
+    if(!assetId || !fd.get('date') || !fd.get('reason')){ toast('Please complete required fields.', 'error'); return; }
+    const asset = STATE.cache.assets.find(a=>a.id===assetId);
+    const isAdmin = currentIsAdmin();
+    const record = {
+      assetId, prevDepartment: asset.department, newDepartment: fd.get('newDepartment')||asset.department,
+      prevLocation: asset.location, newLocation: fd.get('newLocation')||asset.location,
+      prevStaff: asset.staffAssigned, newStaff: fd.get('newStaff')||asset.staffAssigned,
+      date: fd.get('date'), reason: fd.get('reason'), approvedBy: isAdmin?(fd.get('approvedBy')||STATE.currentUser.username):'',
+      comments: fd.get('comments')||'', status: isAdmin ? 'Approved' : 'Pending Approval',
+      submittedBy: STATE.currentUser.username
+    };
+    await dbAdd('transfers', record);
+    if(isAdmin){
+      const updated = {...asset, department:record.newDepartment, location:record.newLocation, staffAssigned:record.newStaff, status:'Transferred'};
+      await dbPut('assets', updated);
+    }
+    await logAudit(isAdmin?'Transfer Asset (Approved)':'Transfer Asset (Requested)', 'Transfer', asset.assetCode, asset, record);
+    await refreshCache();
+    closeModal();
+    toast(isAdmin ? 'Transfer applied.' : 'Transfer submitted for approval.', 'success');
+    renderView();
+  });
+}
+async function approveTransfer(id){
+  const t = STATE.cache.transfers.find(x=>x.id===id);
+  if(!t) return;
+  const asset = STATE.cache.assets.find(a=>a.id===t.assetId);
+  const updatedAsset = {...asset, department:t.newDepartment, location:t.newLocation, staffAssigned:t.newStaff, status:'Transferred'};
+  await dbPut('assets', updatedAsset);
+  const updatedT = {...t, status:'Approved', approvedBy: STATE.currentUser.username};
+  await dbPut('transfers', updatedT);
+  await logAudit('Approve Transfer', 'Transfer', asset.assetCode, t, updatedT);
+  await refreshCache();
+  toast('Transfer approved.', 'success');
+  renderView();
+}
+
+/* ---------------------------- DISPOSALS ---------------------------- */
+function viewDisposals(){
+  const disposals = STATE.cache.disposals.slice().sort((a,b)=> (b.disposalDate||'').localeCompare(a.disposalDate||''));
+  const currency = (STATE.cache.settings.company && STATE.cache.settings.company.currency) || 'GHS';
+  return `
+    <div class="toolbar">
+      <div class="left"><h3 style="margin:0;">Asset Disposals</h3></div>
+      <div class="right"><button class="btn btn-accent btn-sm" data-action="open-disposal-form">+ New Disposal</button></div>
+    </div>
+    <div class="table-wrap card" style="padding:0;">
+      <table>
+        <thead><tr><th>Date</th><th>Asset</th><th>Method</th><th class="text-right">NBV</th><th class="text-right">Proceeds</th><th class="text-right">Gain/Loss</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          ${disposals.length===0 ? `<tr><td colspan="8"><div class="empty-state">No disposals recorded.</div></td></tr>` :
+            disposals.map(d=>{
+              const a = STATE.cache.assets.find(x=>x.id===d.assetId);
+              return `<tr>
+                <td>${escapeHtml(d.disposalDate)}</td>
+                <td>${a?escapeHtml(a.assetCode):'—'}</td>
+                <td>${escapeHtml(d.method)}</td>
+                <td class="text-right money">${currency} ${fmtMoney(d.nbvAtDisposal)}</td>
+                <td class="text-right money">${currency} ${fmtMoney(d.proceeds)}</td>
+                <td class="text-right money" style="color:${d.gainLoss<0?'var(--red)':'var(--green)'}">${currency} ${fmtMoney(d.gainLoss)}</td>
+                <td><span class="badge ${d.status==='Approved'?'approved':d.status==='Rejected'?'disposed':'pending'}">${escapeHtml(d.status)}</span></td>
+                <td>${currentIsAdmin() && d.status==='Pending Approval' ? `<button class="link-btn" data-action="approve-disposal" data-id="${d.id}">Approve</button> <button class="link-btn danger" data-action="reject-disposal" data-id="${d.id}">Reject</button>` : ''}</td>
+              </tr>`;
+            }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+function disposalForm(){
+  const assets = activeAssets();
+  const body = `
+    <form id="disposal-form">
+      <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+        <div class="field span2" style="grid-column:1/-1;"><label>Asset *</label>
+          <select name="assetId" id="disposal-asset" required>
+            <option value="">Select asset</option>
+            ${assets.map(a=>`<option value="${a.id}">${escapeHtml(a.assetCode)} — ${escapeHtml(a.description)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field"><label>Disposal Date *</label><input type="date" name="disposalDate" id="disposal-date" required value="${todayStr()}"></div>
+        <div class="field"><label>Disposal Method *</label>
+          <select name="method" required>${['Sale','Scrap','Write-off','Donation','Other'].map(m=>`<option>${m}</option>`).join('')}</select>
+        </div>
+        <div class="field"><label>Disposal Proceeds</label><input type="number" step="0.01" min="0" name="proceeds" id="disposal-proceeds" value="0"></div>
+        <div class="field"><label>Disposal Reference</label><input type="text" name="reference"></div>
+        <div class="field span2" style="grid-column:1/-1;"><label>Reason for Disposal *</label><input type="text" name="reason" required></div>
+        <div class="field span2" style="grid-column:1/-1;"><label>Remarks</label><textarea name="remarks" rows="2"></textarea></div>
+      </div>
+      <div class="callout" id="disposal-preview" style="margin-top:6px;">Select an asset to preview Net Book Value and estimated gain/loss.</div>
+    </form>`;
+  const foot = `<button class="btn btn-outline" data-action="close-modal">Cancel</button><button class="btn btn-accent" id="disposal-save">Submit Disposal</button>`;
+  openModal('New Asset Disposal', body, foot);
+
+  function updatePreview(){
+    const assetId = Number(document.getElementById('disposal-asset').value);
+    const asset = STATE.cache.assets.find(a=>a.id===assetId);
+    const date = document.getElementById('disposal-date').value || todayStr();
+    const proceeds = Number(document.getElementById('disposal-proceeds').value)||0;
+    const el = document.getElementById('disposal-preview');
+    if(!asset){ el.textContent = 'Select an asset to preview Net Book Value and estimated gain/loss.'; return; }
+    const r = computeDepreciation(asset, date);
+    const gainLoss = proceeds - r.nbv;
+    const currency = asset.currency || 'GHS';
+    el.innerHTML = `Net Book Value at disposal: <strong>${currency} ${fmtMoney(r.nbv)}</strong> &nbsp;·&nbsp; Estimated Gain/Loss: <strong style="color:${gainLoss<0?'var(--red)':'var(--green)'}">${currency} ${fmtMoney(gainLoss)}</strong>`;
+  }
+  document.getElementById('disposal-asset').addEventListener('change', updatePreview);
+  document.getElementById('disposal-date').addEventListener('change', updatePreview);
+  document.getElementById('disposal-proceeds').addEventListener('input', updatePreview);
+
+  document.getElementById('disposal-save').addEventListener('click', async ()=>{
+    const fd = new FormData(document.getElementById('disposal-form'));
+    const assetId = Number(fd.get('assetId'));
+    if(!assetId || !fd.get('disposalDate') || !fd.get('reason')){ toast('Please complete required fields.', 'error'); return; }
+    const asset = STATE.cache.assets.find(a=>a.id===assetId);
+    const r = computeDepreciation(asset, fd.get('disposalDate'));
+    const proceeds = Number(fd.get('proceeds'))||0;
+    const isAdmin = currentIsAdmin();
+    const record = {
+      assetId, disposalDate: fd.get('disposalDate'), method: fd.get('method'),
+      acquisitionCost: asset.cost, accumulatedDepreciation: r.accumulated, nbvAtDisposal: r.nbv,
+      proceeds, gainLoss: proceeds - r.nbv, reason: fd.get('reason'),
+      approvedBy: isAdmin ? STATE.currentUser.username : '', reference: fd.get('reference')||'',
+      remarks: fd.get('remarks')||'', status: isAdmin ? 'Approved' : 'Pending Approval',
+      submittedBy: STATE.currentUser.username, prevStatus: asset.status
+    };
+    await dbAdd('disposals', record);
+    if(isAdmin){
+      const updated = {...asset, status:'Disposed'};
+      await dbPut('assets', updated);
+    } else {
+      const updated = {...asset, status:'Under Review'};
+      await dbPut('assets', updated);
+    }
+    await logAudit(isAdmin?'Dispose Asset (Approved)':'Dispose Asset (Requested)', 'Disposal', asset.assetCode, asset, record);
+    await refreshCache();
+    closeModal();
+    toast(isAdmin ? 'Disposal recorded.' : 'Disposal submitted for approval.', 'success');
+    renderView();
+  });
+}
+async function approveDisposal(id){
+  const d = STATE.cache.disposals.find(x=>x.id===id);
+  if(!d) return;
+  const asset = STATE.cache.assets.find(a=>a.id===d.assetId);
+  const updatedAsset = {...asset, status:'Disposed'};
+  await dbPut('assets', updatedAsset);
+  const updatedD = {...d, status:'Approved', approvedBy: STATE.currentUser.username};
+  await dbPut('disposals', updatedD);
+  await logAudit('Approve Disposal', 'Disposal', asset.assetCode, d, updatedD);
+  await refreshCache();
+  toast('Disposal approved.', 'success');
+  renderView();
+}
+async function rejectTransfer(id){
+  const t = STATE.cache.transfers.find(x=>x.id===id);
+  if(!t) return;
+  const asset = STATE.cache.assets.find(a=>a.id===t.assetId);
+  const updatedT = {...t, status:'Rejected', approvedBy: STATE.currentUser.username};
+  await dbPut('transfers', updatedT);
+  await logAudit('Reject Transfer', 'Transfer', asset?asset.assetCode:'', t, updatedT);
+  await refreshCache();
+  toast('Transfer rejected.', 'success');
+  renderView();
+}
+async function rejectDisposal(id){
+  const d = STATE.cache.disposals.find(x=>x.id===id);
+  if(!d) return;
+  const asset = STATE.cache.assets.find(a=>a.id===d.assetId);
+  const updatedAsset = {...asset, status: d.prevStatus || 'Active'};
+  await dbPut('assets', updatedAsset);
+  const updatedD = {...d, status:'Rejected', approvedBy: STATE.currentUser.username};
+  await dbPut('disposals', updatedD);
+  await logAudit('Reject Disposal', 'Disposal', asset.assetCode, d, updatedD);
+  await refreshCache();
+  toast('Disposal rejected. Asset status restored.', 'success');
+  renderView();
+}
+
+/* ---------------------------- DEPRECIATION VIEW ---------------------------- */
+function viewDepreciation(){
+  const asOf = STATE.depAsOf || todayStr();
+  const currency = (STATE.cache.settings.company && STATE.cache.settings.company.currency) || 'GHS';
+  const rows = activeAssets();
+  return `
+    <div class="card">
+      <div class="toolbar">
+        <div class="left">
+          <label style="font-size:12.5px;">As of date:</label>
+          <input type="date" id="dep-asof" value="${asOf}">
+        </div>
+        <div class="right">
+          <button class="btn btn-outline btn-sm" data-action="export-depreciation">Export CSV</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Asset Code</th><th>Description</th><th>Dep. Start</th><th class="text-right">Cost</th>
+            <th class="text-right">Annual Dep.</th><th class="text-right">Monthly Dep.</th>
+            <th class="text-right">Current Period</th><th class="text-right">Accumulated</th><th class="text-right">NBV</th>
+          </tr></thead>
+          <tbody>
+            ${rows.length===0 ? `<tr><td colspan="9"><div class="empty-state">No active assets to depreciate.</div></td></tr>` :
+              rows.map(a=>{
+                const r = computeDepreciation(a, asOf);
+                return `<tr>
+                  <td><strong>${escapeHtml(a.assetCode)}</strong></td>
+                  <td>${escapeHtml(a.description)}</td>
+                  <td>${fmtDate(a.depreciationStartDate)}</td>
+                  <td class="text-right money">${currency} ${fmtMoney(a.cost)}</td>
+                  <td class="text-right money">${currency} ${fmtMoney(r.annual)}</td>
+                  <td class="text-right money">${currency} ${fmtMoney(r.monthly)}</td>
+                  <td class="text-right money">${currency} ${fmtMoney(r.currentPeriod)}</td>
+                  <td class="text-right money">${currency} ${fmtMoney(r.accumulated)}</td>
+                  <td class="text-right money">${currency} ${fmtMoney(r.nbv)}</td>
+                </tr>`;
+              }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+/* ---------------------------- REPORTS ---------------------------- */
+const REPORT_TABS = [
+  {key:'register', label:'Asset Register'},
+  {key:'depreciation', label:'Depreciation'},
+  {key:'movement', label:'Asset Movement'},
+  {key:'disposal', label:'Disposal'},
+  {key:'wip', label:'WIP'},
+  {key:'department', label:'Departmental'},
+  {key:'location', label:'Location'},
+  {key:'fullydep', label:'Fully Depreciated'}
+];
+function viewReports(){
+  const tab = STATE.reportsTab || 'register';
+  return `
+    <div class="pill-tabs">
+      ${REPORT_TABS.map(t=>`<button class="pill-tab ${tab===t.key?'active':''}" data-action="report-tab" data-tab="${t.key}">${t.label}</button>`).join('')}
+    </div>
+    <div class="card">
+      <div class="toolbar">
+        <div class="left">
+          <label style="font-size:12.5px;">From</label><input type="date" id="report-from" value="${STATE.reportFrom||''}">
+          <label style="font-size:12.5px;">To</label><input type="date" id="report-to" value="${STATE.reportTo||todayStr()}">
+          <button class="btn btn-outline btn-sm" data-action="report-refresh">Apply</button>
+        </div>
+        <div class="right">
+          <button class="btn btn-outline btn-sm" data-action="report-export-csv">Export CSV</button>
+          <button class="btn btn-outline btn-sm" data-action="report-print">Print / Save PDF</button>
+        </div>
+      </div>
+      <div id="report-output">${renderReportTable(tab)}</div>
+    </div>
+  `;
+}
+function reportDateRange(){
+  return { from: STATE.reportFrom || '0000-01-01', to: STATE.reportTo || todayStr() };
+}
+function renderReportTable(tab){
+  const currency = (STATE.cache.settings.company && STATE.cache.settings.company.currency) || 'GHS';
+  const {from, to} = reportDateRange();
+  const asOf = to;
+  let head=[], body=[];
+
+  if(tab==='register'){
+    head = ['Asset Code','Description','Category','Acq. Date','Cost','Location','Department','Staff','Rate %','Acc. Dep.','NBV','Status'];
+    body = STATE.cache.assets.filter(a=>a.acquisitionDate>=from && a.acquisitionDate<=to).map(a=>{
+      const r = computeDepreciation(a, asOf);
+      return [a.assetCode,a.description,a.category,a.acquisitionDate,fmtMoney(a.cost),a.location,a.department,a.staffAssigned,a.depreciationRate,fmtMoney(r.accumulated),fmtMoney(r.nbv),a.status];
+    });
+  } else if(tab==='depreciation'){
+    head = ['Asset Code','Description','Opening NBV','Depreciation (Period)','Accumulated Dep.','Closing NBV'];
+    body = activeAssets().map(a=>{
+      const closing = computeDepreciation(a, to);
+      const opening = computeDepreciation(a, from);
+      return [a.assetCode, a.description, fmtMoney(opening.nbv), fmtMoney(closing.accumulated-opening.accumulated), fmtMoney(closing.accumulated), fmtMoney(closing.nbv)];
+    });
+  } else if(tab==='movement'){
+    head = ['Date','Type','Asset','Details'];
+    const acquisitions = STATE.cache.assets.filter(a=>a.acquisitionDate>=from && a.acquisitionDate<=to && !a.reclassifiedFromWip)
+      .map(a=>[a.acquisitionDate,'Acquisition',a.assetCode,`Cost ${fmtMoney(a.cost)}`]);
+    const transfersR = STATE.cache.transfers.filter(t=>t.date>=from && t.date<=to)
+      .map(t=>{const a=STATE.cache.assets.find(x=>x.id===t.assetId); return [t.date,'Transfer', a?a.assetCode:'—', `${t.prevDepartment||''}→${t.newDepartment||''}`];});
+    const reclass = STATE.cache.assets.filter(a=>a.reclassifiedFromWip && a.acquisitionDate>=from && a.acquisitionDate<=to)
+      .map(a=>[a.acquisitionDate,'Reclassification',a.assetCode,`Capitalized ${fmtMoney(a.cost)}`]);
+    const disposalsR = STATE.cache.disposals.filter(d=>d.disposalDate>=from && d.disposalDate<=to)
+      .map(d=>{const a=STATE.cache.assets.find(x=>x.id===d.assetId); return [d.disposalDate,'Disposal', a?a.assetCode:'—', `Gain/Loss ${fmtMoney(d.gainLoss)}`];});
+    body = [...acquisitions, ...transfersR, ...reclass, ...disposalsR].sort((a,b)=>a[0].localeCompare(b[0]));
+  } else if(tab==='disposal'){
+    head = ['Date','Asset','Cost','Acc. Dep.','NBV','Proceeds','Gain/Loss','Status'];
+    body = STATE.cache.disposals.filter(d=>d.disposalDate>=from && d.disposalDate<=to).map(d=>{
+      const a = STATE.cache.assets.find(x=>x.id===d.assetId);
+      return [d.disposalDate, a?a.assetCode:'—', fmtMoney(d.acquisitionCost), fmtMoney(d.accumulatedDepreciation), fmtMoney(d.nbvAtDisposal), fmtMoney(d.proceeds), fmtMoney(d.gainLoss), d.status];
+    });
+  } else if(tab==='wip'){
+    head = ['Project','Location','Opening WIP','Additions','Total WIP','Capitalized','Closing WIP','Status'];
+    body = STATE.cache.wipProjects.map(p=>{
+      const allExp = STATE.cache.wipExpenditure.filter(e=>e.projectId===p.id);
+      const opening = allExp.filter(e=>e.date<from).reduce((s,e)=>s+Number(e.amount),0);
+      const additions = allExp.filter(e=>e.date>=from && e.date<=to).reduce((s,e)=>s+Number(e.amount),0);
+      const total = opening+additions;
+      const capitalized = p.status==='Reclassified' ? total : 0;
+      return [p.code, p.location||'—', fmtMoney(opening), fmtMoney(additions), fmtMoney(total), fmtMoney(capitalized), fmtMoney(total-capitalized), p.status];
+    });
+  } else if(tab==='department'){
+    head = ['Department','Asset Count','Total Cost','Total NBV'];
+    const map = {};
+    activeAssets().forEach(a=>{
+      const k = a.department||'Unassigned';
+      if(!map[k]) map[k]={count:0,cost:0,nbv:0};
+      map[k].count++; map[k].cost+=Number(a.cost)||0; map[k].nbv+=computeDepreciation(a,asOf).nbv;
+    });
+    body = Object.entries(map).map(([k,v])=>[k,v.count,fmtMoney(v.cost),fmtMoney(v.nbv)]);
+  } else if(tab==='location'){
+    head = ['Location','Asset Count','Total Cost','Total NBV'];
+    const map = {};
+    activeAssets().forEach(a=>{
+      const k = a.location||'Unassigned';
+      if(!map[k]) map[k]={count:0,cost:0,nbv:0};
+      map[k].count++; map[k].cost+=Number(a.cost)||0; map[k].nbv+=computeDepreciation(a,asOf).nbv;
+    });
+    body = Object.entries(map).map(([k,v])=>[k,v.count,fmtMoney(v.cost),fmtMoney(v.nbv)]);
+  } else if(tab==='fullydep'){
+    head = ['Asset Code','Description','Category','Cost','Accumulated Dep.','Depreciation Start'];
+    body = activeAssets().filter(a=>computeDepreciation(a,asOf).fullyDepreciated)
+      .map(a=>{const r=computeDepreciation(a,asOf); return [a.assetCode,a.description,a.category,fmtMoney(a.cost),fmtMoney(r.accumulated),fmtDate(a.depreciationStartDate)];});
+  }
+  STATE._lastReport = {head, body, tab};
+  if(body.length===0) return `<div class="empty-state">No data for the selected report and period.</div>`;
+  return `<div class="table-wrap"><table><thead><tr>${head.map(h=>`<th>${escapeHtml(h)}</th>`).join('')}</tr></thead>
+    <tbody>${body.map(row=>`<tr>${row.map(c=>`<td>${escapeHtml(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+    <p class="note" style="margin-top:8px;">Currency: ${currency} · Period: ${from==='0000-01-01'?'All time':from} to ${to}</p>`;
+}
+
+/* ---------------------------- MIGRATION / IMPORT ---------------------------- */
+const MIGRATION_FIELDS = ['Existing Asset Code','Suggested Asset Code','Asset Category','Asset Description','Asset Tag','Acquisition Date','Acquisition Cost','Location','Department','Staff Assigned','Project','Depreciation Start Date','Depreciation Rate','Accumulated Depreciation','Net Book Value','Serial Number','Remarks'];
+
+function viewMigration(){
+  return `
+    <div class="card">
+      <h3>1. Download Migration Template</h3>
+      <p class="note">Download the Excel-compatible CSV template, populate it with your existing asset register, then upload it below for validation.</p>
+      <button class="btn btn-outline" data-action="download-migration-template">Download Template (CSV)</button>
+    </div>
+    <div class="card">
+      <h3>2. Upload &amp; Validate</h3>
+      <input type="file" id="migration-file" accept=".csv">
+      <div id="migration-preview" style="margin-top:16px;"></div>
+    </div>
+  `;
+}
+function csvToRows(text){
+  const lines = text.split(/\r\n|\n/).filter(l=>l.trim().length>0);
+  return lines.map(line=>{
+    const cells = [];
+    let cur='', inQuotes=false;
+    for(let i=0;i<line.length;i++){
+      const ch = line[i];
+      if(ch==='"'){ inQuotes = !inQuotes; continue; }
+      if(ch===',' && !inQuotes){ cells.push(cur); cur=''; continue; }
+      cur += ch;
+    }
+    cells.push(cur);
+    return cells.map(c=>c.trim());
+  });
+}
+function downloadMigrationTemplate(){
+  const csv = MIGRATION_FIELDS.join(',') + '\n' + 'EX-0001,LAND-0001,Land,Sample plot description,TAG-001,2023-01-10,50000,Head Office,Finance,,,2023-01-01,0,0,50000,,\n';
+  downloadFile('fixed_assets_migration_template.csv', csv, 'text/csv');
+}
+function validateMigrationRows(rows){
+  const [header, ...dataRows] = rows;
+  const idx = {};
+  MIGRATION_FIELDS.forEach(f=> idx[f] = header.findIndex(h=>h.trim().toLowerCase()===f.toLowerCase()));
+  const catNames = STATE.cache.categories.map(c=>c.name.toLowerCase());
+  const existingCodes = new Set(STATE.cache.assets.map(a=>a.assetCode.toLowerCase()));
+  const seenInFile = new Set();
+  const results = dataRows.map((row, i)=>{
+    const get = f => idx[f]>=0 ? (row[idx[f]]||'').trim() : '';
+    const errors = [];
+    const code = get('Suggested Asset Code') || get('Existing Asset Code');
+    const category = get('Asset Category');
+    const description = get('Asset Description');
+    const acqDate = get('Acquisition Date');
+    const cost = get('Acquisition Cost');
+
+    if(!description) errors.push('Missing description');
+    if(!category) errors.push('Missing category');
+    else if(!catNames.includes(category.toLowerCase())) errors.push('Unknown category');
+    if(!acqDate || isNaN(Date.parse(acqDate))) errors.push('Invalid acquisition date');
+    if(!cost || isNaN(Number(cost))) errors.push('Invalid cost');
+    let duplicate = false;
+    if(code){
+      const codeL = code.toLowerCase();
+      if(existingCodes.has(codeL)) { duplicate = true; errors.push('Duplicate asset code (existing)'); }
+      if(seenInFile.has(codeL)) { duplicate = true; errors.push('Duplicate asset code (in file)'); }
+      seenInFile.add(codeL);
+    }
+    return {
+      rowNum: i+2, code, category, description, acqDate, cost,
+      location: get('Location'), department: get('Department'), staffAssigned: get('Staff Assigned'),
+      project: get('Project'), depStart: get('Depreciation Start Date'), depRate: get('Depreciation Rate'),
+      accDep: get('Accumulated Depreciation'), serial: get('Serial Number'), remarks: get('Remarks'),
+      errors, status: errors.length ? (duplicate?'Duplicate':'Error') : 'Valid'
+    };
+  });
+  return results;
+}
+function renderMigrationPreview(results){
+  const valid = results.filter(r=>r.status==='Valid').length;
+  const errorCount = results.filter(r=>r.status==='Error').length;
+  const dupCount = results.filter(r=>r.status==='Duplicate').length;
+  return `
+    <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);">
+      <div class="kpi-card green"><div class="kpi-label">Valid Records</div><div class="kpi-value">${valid}</div></div>
+      <div class="kpi-card red"><div class="kpi-label">Records with Errors</div><div class="kpi-value">${errorCount}</div></div>
+      <div class="kpi-card accent"><div class="kpi-label">Duplicate Records</div><div class="kpi-value">${dupCount}</div></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Row</th><th>Code</th><th>Category</th><th>Description</th><th>Acq. Date</th><th>Cost</th><th>Status</th><th>Issues</th></tr></thead>
+        <tbody>
+          ${results.map(r=>`<tr>
+            <td>${r.rowNum}</td><td>${escapeHtml(r.code||'—')}</td><td>${escapeHtml(r.category)}</td>
+            <td>${escapeHtml(r.description)}</td><td>${escapeHtml(r.acqDate)}</td><td>${escapeHtml(r.cost)}</td>
+            <td><span class="badge ${r.status==='Valid'?'active':r.status==='Duplicate'?'wip':'review'}">${r.status}</span></td>
+            <td>${escapeHtml(r.errors.join('; ')||'—')}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div class="actions-row">
+      <button class="btn btn-accent" id="migration-import-btn" ${valid===0?'disabled':''}>Import ${valid} Valid Record(s)</button>
+    </div>
+  `;
+}
+async function importValidMigrationRows(results){
+  const valid = results.filter(r=>r.status==='Valid');
+  let count = 0;
+  for(const r of valid){
+    const cat = STATE.cache.categories.find(c=>c.name.toLowerCase()===r.category.toLowerCase());
+    const code = r.code || await generateAssetCode(cat.name);
+    if(STATE.cache.assets.some(a=>a.assetCode.toLowerCase()===code.toLowerCase())) continue;
+    const depStart = r.depStart && !isNaN(Date.parse(r.depStart)) ? r.depStart : fmtDate(calcDepStartDate(r.acqDate));
+    const data = {
+      assetCode: code, assetTag:'', category: cat.name, description: r.description,
+      acquisitionDate: r.acqDate, supplier:'', invoiceRef:'', cost: Number(r.cost), currency:(STATE.cache.settings.company&&STATE.cache.settings.company.currency)||'GHS',
+      depreciationStartDate: depStart, location: r.location, department: r.department, project: r.project,
+      staffAssigned: r.staffAssigned, costCentre:'', depreciationRate: r.depRate?Number(r.depRate):cat.rate,
+      depreciationMethod: cat.method, status:'Active', serialNumber: r.serial, warrantyExpiry:'', docRef:'',
+      remarks: (r.remarks||'') + ' [Migrated from Excel]', createdAt: new Date().toISOString(), createdBy: STATE.currentUser.username
+    };
+    await dbAdd('assets', data);
+    STATE.cache.assets.push(data);
+    count++;
+  }
+  await logAudit('Migration Import', 'Assets', `${count} record(s)`, null, {count});
+  await refreshCache();
+  toast(`${count} asset(s) imported from migration file.`, 'success');
+  renderView();
+}
+
+/* ---------------------------- EXPORTS ---------------------------- */
+let DOWNLOADS_CAP = null; // resolved once in init() when running inside Claude
+async function downloadFile(filename, content, mime){
+  if(DOWNLOADS_CAP){
+    try{
+      await DOWNLOADS_CAP.save({ filename, data: new Blob([content], {type: mime + ';charset=utf-8;'}) });
+      toast(`${filename} saved.`, 'success');
+      return;
+    } catch(err){
+      if(err && err.code === 'declined') return; // user cancelled — not an error
+      console.error(err);
+      toast('Could not save the file' + (err && err.message ? ': ' + err.message : '') + '.', 'error');
+      return;
+    }
+  }
+  // Standalone / offline file — ordinary browser download.
+  const blob = new Blob([content], {type: mime + ';charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+}
+function arrayToCsv(head, rows){
+  const esc = v => `"${String(v??'').replace(/"/g,'""')}"`;
+  return head.map(esc).join(',') + '\n' + rows.map(r=>r.map(esc).join(',')).join('\n');
+}
+
+/* ---------------------------- GOOGLE SHEETS SYNC ----------------------------
+   Manual, explicit Push / Pull against a Google Sheet, bridged by a small
+   Apps Script Web App (see the companion Code.gs file). Each record is
+   stored as one row of {id, updatedAt, json} — the full record round-trips
+   through a single JSON cell, which sidesteps Google Sheets' automatic
+   date/number reformatting entirely, so nothing is silently altered.
+   'settings' syncs too (company info, asset-code sequences) EXCEPT the
+   sync configuration itself (the Web App URL / secret), which always stays
+   local to this browser and is never written to the sheet. ------------- */
+async function getSyncConfig(){
+  const cfg = await dbGet('settings','sync');
+  return cfg || {key:'sync', webAppUrl:'', secret:'', autoSync:false, lastPush:null, lastPull:null};
+}
+async function saveSyncConfig(cfg){
+  await dbPut('settings', {...cfg, key:'sync'});
+  await refreshCache();
+}
+
+async function buildSyncPayload(){
+  const payload = {};
+  for(const store of ALL_STORES){
+    if(store==='settings'){
+      payload.settings = (await dbGetAll('settings')).filter(s=>s.key!=='sync');
+    } else {
+      payload[store] = await dbGetAll(store);
+    }
+  }
+  return payload;
+}
+
+async function pushToSheets(silent){
+  const cfg = await getSyncConfig();
+  if(!cfg.webAppUrl || !cfg.secret){
+    if(!silent) toast('Add and save your Google Sheets Web App URL and secret first (Administration \u2192 Google Sheets Sync).', 'error');
+    return false;
+  }
+  if(!silent) toast('Pushing data to Google Sheets\u2026', 'info');
+  try{
+    const payload = await buildSyncPayload();
+    const body = 'secret=' + encodeURIComponent(cfg.secret) + '&action=push&data=' + encodeURIComponent(JSON.stringify(payload));
+    const res = await fetch(cfg.webAppUrl, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const json = await res.json();
+    if(!json.ok) throw new Error(json.error || 'The Apps Script reported an error.');
+    const fresh = await getSyncConfig();
+    fresh.lastPush = new Date().toISOString();
+    await saveSyncConfig(fresh);
+    if(STATE.currentUser) await logAuditRaw('Push to Google Sheets', 'System', 'sync', null, {by: STATE.currentUser.username});
+    if(!silent) toast('Data pushed to Google Sheets successfully.', 'success');
+    return true;
+  } catch(err){
+    console.error(err);
+    if(!silent) toast('Push failed: ' + err.message + '. Check the Web App URL, the secret, and that the deployment access is set to "Anyone".', 'error');
+    return false;
+  }
+}
+
+async function pullFromSheets(){
+  const cfg = await getSyncConfig();
+  if(!cfg.webAppUrl || !cfg.secret){
+    toast('Add and save your Google Sheets Web App URL and secret first (Administration \u2192 Google Sheets Sync).', 'error');
+    return;
+  }
+  confirmDialog('This replaces your local data with what is currently stored in Google Sheets. Anything saved locally since your last push could be lost — push first if unsure. Continue?', async ()=>{
+    toast('Pulling data from Google Sheets\u2026', 'info');
+    try{
+      const sep = cfg.webAppUrl.includes('?') ? '&' : '?';
+      const url = cfg.webAppUrl + sep + 'secret=' + encodeURIComponent(cfg.secret) + '&action=pull';
+      const res = await fetch(url);
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      const json = await res.json();
+      if(!json.ok) throw new Error(json.error || 'The Apps Script reported an error.');
+      const data = json.data || {};
+      const preservedSyncCfg = await getSyncConfig(); // never overwritten by a pull
+      for(const store of ALL_STORES){
+        if(!Array.isArray(data[store])) continue;
+        await dbClear(store);
+        for(const rec of data[store]){
+          const clone = {...rec};
+          await dbAdd(store, clone); // ids already present in the record are preserved
+        }
+      }
+      await saveSyncConfig(preservedSyncCfg);
+      const fresh = await getSyncConfig();
+      fresh.lastPull = new Date().toISOString();
+      await saveSyncConfig(fresh);
+      await refreshCache();
+      if(STATE.currentUser) await logAuditRaw('Pull from Google Sheets', 'System', 'sync', null, {by: STATE.currentUser.username});
+      toast('Data pulled from Google Sheets successfully.', 'success');
+      goTo('dashboard');
+    } catch(err){
+      console.error(err);
+      toast('Pull failed: ' + err.message + '. Check the Web App URL, the secret, and that the deployment access is set to "Anyone".', 'error');
+    }
+  }, {okLabel:'Pull & Replace Local Data', title:'Confirm Pull From Google Sheets'});
+}
+
+/* logAudit writes to IndexedDB (and would otherwise itself trigger an
+   auto-sync, re-triggering logAudit — logAuditRaw breaks that loop for
+   sync's own bookkeeping entries). */
+async function logAuditRaw(action, entity, entityId, previousValue, newValue){
+  await dbAdd('auditLog', {
+    timestamp: new Date().toISOString(), user: STATE.currentUser?STATE.currentUser.username:'system',
+    action, entity, entityId: entityId??'',
+    previousValue: previousValue!==undefined?JSON.stringify(previousValue):'',
+    newValue: newValue!==undefined?JSON.stringify(newValue):''
+  });
+  STATE.cache.auditLog = await dbGetAll('auditLog');
+}
+
+let __autoSyncTimer = null;
+const AUTO_SYNC_EXCLUDED_ACTIONS = new Set(['Login','Logout','Push to Google Sheets','Pull from Google Sheets']);
+function scheduleAutoSync(action){
+  if(AUTO_SYNC_EXCLUDED_ACTIONS.has(action)) return;
+  getSyncConfig().then(cfg=>{
+    if(!cfg.autoSync || !cfg.webAppUrl || !cfg.secret) return;
+    clearTimeout(__autoSyncTimer);
+    __autoSyncTimer = setTimeout(()=>{ pushToSheets(true); }, 4000);
+  }).catch(()=>{});
+}
+function exportAssetsCsv(){
+  const currency = (STATE.cache.settings.company && STATE.cache.settings.company.currency) || 'GHS';
+  const head = ['Asset Code','Description','Category','Acquisition Date','Cost','Location','Department','Staff Assigned','Depreciation Rate','Accumulated Depreciation','NBV','Status'];
+  const rows = STATE.cache.assets.map(a=>{
+    const r = computeDepreciation(a, todayStr());
+    return [a.assetCode,a.description,a.category,a.acquisitionDate,a.cost,a.location,a.department,a.staffAssigned,a.depreciationRate,r.accumulated.toFixed(2),r.nbv.toFixed(2),a.status];
+  });
+  downloadFile('asset_register.csv', arrayToCsv(head, rows), 'text/csv');
+}
+function exportDepreciationCsv(){
+  const asOf = STATE.depAsOf || todayStr();
+  const head = ['Asset Code','Description','Dep. Start','Cost','Annual Dep.','Monthly Dep.','Current Period','Accumulated','NBV'];
+  const rows = activeAssets().map(a=>{
+    const r = computeDepreciation(a, asOf);
+    return [a.assetCode,a.description,a.depreciationStartDate,a.cost,r.annual.toFixed(2),r.monthly.toFixed(2),r.currentPeriod.toFixed(2),r.accumulated.toFixed(2),r.nbv.toFixed(2)];
+  });
+  downloadFile('depreciation_schedule.csv', arrayToCsv(head, rows), 'text/csv');
+}
+function exportTransfersCsv(){
+  const head = ['Date','Asset','Prev Dept','New Dept','Prev Location','New Location','Reason','Status'];
+  const rows = STATE.cache.transfers.map(t=>{
+    const a = STATE.cache.assets.find(x=>x.id===t.assetId);
+    return [t.date, a?a.assetCode:'', t.prevDepartment, t.newDepartment, t.prevLocation, t.newLocation, t.reason, t.status];
+  });
+  downloadFile('transfers.csv', arrayToCsv(head, rows), 'text/csv');
+}
+function exportDisposalsCsv(){
+  const head = ['Date','Asset','Method','Cost','Acc. Dep.','NBV','Proceeds','Gain/Loss','Status'];
+  const rows = STATE.cache.disposals.map(d=>{
+    const a = STATE.cache.assets.find(x=>x.id===d.assetId);
+    return [d.disposalDate, a?a.assetCode:'', d.method, d.acquisitionCost, d.accumulatedDepreciation, d.nbvAtDisposal, d.proceeds, d.gainLoss, d.status];
+  });
+  downloadFile('disposals.csv', arrayToCsv(head, rows), 'text/csv');
+}
+function exportWipCsv(){
+  const head = ['Project Code','Name','Location','Status','Total WIP'];
+  const rows = STATE.cache.wipProjects.map(p=> [p.code,p.name,p.location,p.status,wipProjectTotal(p.id).toFixed(2)]);
+  downloadFile('wip_projects.csv', arrayToCsv(head, rows), 'text/csv');
+}
+function exportAuditCsv(){
+  const head = ['Timestamp','User','Action','Entity','Entity ID','Previous Value','New Value'];
+  const rows = STATE.cache.auditLog.map(a=> [a.timestamp,a.user,a.action,a.entity,a.entityId,a.previousValue,a.newValue]);
+  downloadFile('audit_log.csv', arrayToCsv(head, rows), 'text/csv');
+}
+function printCurrentReport(){
+  window.print();
+}
+function viewExports(){
+  const company = (STATE.cache.settings.company && STATE.cache.settings.company.name) || 'Company Name Ltd.';
+  return `
+    <div class="callout">Excel exports are generated as Excel-compatible CSV files. For PDF output, use <strong>Print / Save as PDF</strong> — your browser's print dialog lets you save any report as a PDF file, formatted with ${escapeHtml(company)}, the report title, reporting period, and page numbers.</div>
+    <div class="card">
+      <h3>Export Data Sets</h3>
+      <div class="actions-row">
+        <button class="btn btn-outline" data-action="export-assets-csv">Asset Register (CSV)</button>
+        <button class="btn btn-outline" data-action="export-depreciation">Depreciation Schedule (CSV)</button>
+        <button class="btn btn-outline" data-action="export-transfers-csv">Transfers (CSV)</button>
+        <button class="btn btn-outline" data-action="export-disposals-csv">Disposals (CSV)</button>
+        <button class="btn btn-outline" data-action="export-wip-csv">WIP Projects (CSV)</button>
+        ${currentIsAdmin() ? `<button class="btn btn-outline" data-action="export-audit-csv">Audit Log (CSV)</button>` : ''}
+      </div>
+    </div>
+    <div class="card">
+      <h3>PDF / Print</h3>
+      <p class="note">Open the Reports section, choose a report and period, then use <em>Print / Save PDF</em> there for a formatted, printable report. You can also print this Asset Register directly:</p>
+      <button class="btn btn-outline" data-action="nav" data-view="register">Go to Asset Register</button>
+      <button class="btn btn-outline" data-action="report-print">Print Current View</button>
+    </div>
+    <div class="card">
+      <h3>Email a Report</h3>
+      <p class="note">Export the report as CSV above, then attach the downloaded file to an email.</p>
+      <button class="btn btn-outline" data-action="email-report">Open Email Draft</button>
+    </div>
+  `;
+}
+
+/* ---------------------------- ADMINISTRATION ---------------------------- */
+const ADMIN_TABS = [
+  {key:'users', label:'Users'},
+  {key:'categories', label:'Categories & Rates'},
+  {key:'codes', label:'Asset Code Config'},
+  {key:'company', label:'Company Settings'},
+  {key:'backup', label:'Backup & Restore'},
+  {key:'sync', label:'Google Sheets Sync'}
+];
+function viewAdministration(){
+  const tab = STATE.adminTab || 'users';
+  return `
+    <div class="pill-tabs">
+      ${ADMIN_TABS.map(t=>`<button class="pill-tab ${tab===t.key?'active':''}" data-action="admin-tab" data-tab="${t.key}">${t.label}</button>`).join('')}
+    </div>
+    <div id="admin-tab-content">${renderAdminTab(tab)}</div>
+  `;
+}
+function renderAdminTab(tab){
+  if(tab==='users') return adminUsersTab();
+  if(tab==='categories') return adminCategoriesTab();
+  if(tab==='codes') return adminCodesTab();
+  if(tab==='company') return adminCompanyTab();
+  if(tab==='backup') return adminBackupTab();
+  if(tab==='sync') return adminSyncTab();
+  return '';
+}
+function adminUsersTab(){
+  const users = STATE.cache.users;
+  return `
+    <div class="card">
+      <div class="toolbar"><div class="left"><h3 style="margin:0;">System Users</h3></div>
+        <div class="right"><button class="btn btn-accent btn-sm" data-action="open-user-form">+ New User</button></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Username</th><th>Full Name</th><th>Role</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            ${users.map(u=>`<tr>
+              <td>${escapeHtml(u.username)}</td><td>${escapeHtml(u.fullName||'—')}</td>
+              <td><span class="badge role-${u.role==='administrator'?'admin':'staff'}">${escapeHtml(u.role)}</span></td>
+              <td>${u.active?'<span class="badge active">Active</span>':'<span class="badge disposed">Inactive</span>'}</td>
+              <td>
+                <button class="link-btn" data-action="open-user-form" data-id="${u.id}">Edit</button>
+                <button class="link-btn" data-action="reset-password" data-id="${u.id}">Reset Password</button>
+                ${u.username!=='admin' ? `<button class="link-btn danger" data-action="toggle-user" data-id="${u.id}">${u.active?'Deactivate':'Activate'}</button>` : ''}
+              </td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+function userForm(userId){
+  const editing = STATE.cache.users.find(u=>u.id===userId);
+  const body = `
+    <form id="user-form">
+      <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+        <div class="field"><label>Username *</label><input type="text" name="username" required value="${editing?escapeHtml(editing.username):''}" ${editing?'readonly':''}></div>
+        <div class="field"><label>Full Name</label><input type="text" name="fullName" value="${editing?escapeHtml(editing.fullName||''):''}"></div>
+        <div class="field"><label>Role *</label>
+          <select name="role" required>
+            <option value="staff" ${editing&&editing.role==='staff'?'selected':''}>Staff / User</option>
+            <option value="administrator" ${editing&&editing.role==='administrator'?'selected':''}>Administrator</option>
+          </select>
+        </div>
+        ${!editing ? `<div class="field"><label>Password *</label><input type="password" name="password" required minlength="4"></div>` : ''}
+      </div>
+    </form>`;
+  const foot = `<button class="btn btn-outline" data-action="close-modal">Cancel</button><button class="btn btn-accent" id="user-save">${editing?'Save':'Create User'}</button>`;
+  openModal(editing?'Edit User':'New User', body, foot);
+  document.getElementById('user-save').addEventListener('click', async ()=>{
+    const fd = new FormData(document.getElementById('user-form'));
+    const username = fd.get('username').trim();
+    const role = fd.get('role');
+    if(!username || !role){ toast('Please complete required fields.', 'error'); return; }
+    if(editing){
+      const updated = {...editing, fullName: fd.get('fullName')||'', role};
+      await dbPut('users', updated);
+      await logAudit('Update User', 'User', username, editing, updated);
+      toast('User updated.', 'success');
+    } else {
+      if(STATE.cache.users.some(u=>u.username.toLowerCase()===username.toLowerCase())){ toast('Username already exists.', 'error'); return; }
+      const password = fd.get('password');
+      if(!password || password.length<4){ toast('Password must be at least 4 characters.', 'error'); return; }
+      const hash = await sha256(password);
+      const data = {username, passwordHash:hash, role, fullName: fd.get('fullName')||'', active:true, createdAt:new Date().toISOString()};
+      await dbAdd('users', data);
+      await logAudit('Create User', 'User', username, null, {username, role});
+      toast('User created.', 'success');
+    }
+    await refreshCache();
+    closeModal();
+    renderView();
+  });
+}
+function resetPasswordModal(userId){
+  const u = STATE.cache.users.find(x=>x.id===userId);
+  if(!u) return;
+  const body = `<p>Set a new password for <strong>${escapeHtml(u.username)}</strong>.</p>
+    <div class="field"><label>New Password *</label><input type="password" id="rp-password" minlength="4"></div>`;
+  const foot = `<button class="btn btn-outline" data-action="close-modal">Cancel</button><button class="btn btn-accent" id="rp-save">Set Password</button>`;
+  openModal('Reset Password', body, foot);
+  document.getElementById('rp-save').addEventListener('click', async ()=>{
+    const pw = document.getElementById('rp-password').value;
+    if(!pw || pw.length<4){ toast('Password must be at least 4 characters.', 'error'); return; }
+    const hash = await sha256(pw);
+    const updated = {...u, passwordHash:hash};
+    await dbPut('users', updated);
+    await logAudit('Reset Password', 'User', u.username, null, {by: STATE.currentUser.username});
+    await refreshCache();
+    closeModal();
+    toast('Password updated.', 'success');
+  });
+}
+async function toggleUserActive(userId){
+  const u = STATE.cache.users.find(x=>x.id===userId);
+  if(!u) return;
+  const updated = {...u, active: !u.active};
+  await dbPut('users', updated);
+  await logAudit(updated.active?'Activate User':'Deactivate User', 'User', u.username, u, updated);
+  await refreshCache();
+  toast(`User ${updated.active?'activated':'deactivated'}.`, 'success');
+  renderView();
+}
+function adminCategoriesTab(){
+  const cats = STATE.cache.categories;
+  return `
+    <div class="card">
+      <div class="toolbar"><div class="left"><h3 style="margin:0;">Asset Categories &amp; Depreciation Rates</h3></div>
+        <div class="right"><button class="btn btn-accent btn-sm" data-action="open-category-form">+ New Category</button></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Category</th><th>Code Prefix</th><th class="text-right">Annual Rate</th><th>Method</th><th></th></tr></thead>
+          <tbody>
+            ${cats.map(c=>`<tr>
+              <td>${escapeHtml(c.name)}</td><td>${escapeHtml(c.prefix)}</td>
+              <td class="text-right">${c.rate}%</td><td>${escapeHtml(c.method)}</td>
+              <td><button class="link-btn" data-action="open-category-form" data-id="${c.id}">Edit</button></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      <p class="note" style="margin-top:10px;">Changing a rate here only affects future depreciation calculations for assets that reference this default; existing assets retain their historically assigned rate unless individually edited by an administrator.</p>
+    </div>
+  `;
+}
+function categoryForm(catId){
+  const editing = STATE.cache.categories.find(c=>c.id===catId);
+  const body = `
+    <form id="category-form">
+      <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+        <div class="field span2" style="grid-column:1/-1;"><label>Category Name *</label><input type="text" name="name" required value="${editing?escapeHtml(editing.name):''}"></div>
+        <div class="field"><label>Code Prefix *</label><input type="text" name="prefix" required value="${editing?escapeHtml(editing.prefix):''}"></div>
+        <div class="field"><label>Annual Rate (%) *</label><input type="number" step="0.01" min="0" max="100" name="rate" required value="${editing?editing.rate:0}"></div>
+        <div class="field span2" style="grid-column:1/-1;"><label>Method *</label>
+          <select name="method" required>
+            <option ${editing&&editing.method==='Straight Line'?'selected':''}>Straight Line</option>
+            <option ${editing&&editing.method==='Not Depreciated'?'selected':''}>Not Depreciated</option>
+          </select>
+        </div>
+      </div>
+    </form>`;
+  const foot = `<button class="btn btn-outline" data-action="close-modal">Cancel</button><button class="btn btn-accent" id="category-save">${editing?'Save':'Create Category'}</button>`;
+  openModal(editing?'Edit Category':'New Category', body, foot);
+  document.getElementById('category-save').addEventListener('click', async ()=>{
+    const fd = new FormData(document.getElementById('category-form'));
+    const data = {name: fd.get('name').trim(), prefix: fd.get('prefix').trim().toUpperCase(), rate: Number(fd.get('rate')), method: fd.get('method')};
+    if(!data.name || !data.prefix){ toast('Please complete required fields.', 'error'); return; }
+    if(editing){
+      await dbPut('categories', {...editing, ...data});
+      await logAudit('Update Category', 'Category', data.name, editing, data);
+      toast('Category updated.', 'success');
+    } else {
+      await dbAdd('categories', data);
+      const cfg = STATE.cache.settings.codeConfig;
+      cfg.sequences[data.name] = cfg.sequences[data.name] || 1;
+      await dbPut('settings', cfg);
+      await logAudit('Create Category', 'Category', data.name, null, data);
+      toast('Category created.', 'success');
+    }
+    await refreshCache();
+    closeModal();
+    renderView();
+  });
+}
+function adminCodesTab(){
+  const cfg = STATE.cache.settings.codeConfig;
+  return `
+    <div class="card">
+      <h3>Asset Code Numbering</h3>
+      <p class="note">Codes are generated as <strong>PREFIX-#####</strong> using each category's prefix (edit prefixes under Categories &amp; Rates) and a running sequence number.</p>
+      <div class="field" style="max-width:200px;"><label>Sequence Digits</label><input type="number" id="codes-digits" min="3" max="8" value="${cfg.digits}"></div>
+      <div class="table-wrap" style="margin-top:10px;">
+        <table>
+          <thead><tr><th>Category</th><th>Prefix</th><th>Next Sequence Number</th></tr></thead>
+          <tbody>
+            ${STATE.cache.categories.map(c=>`<tr>
+              <td>${escapeHtml(c.name)}</td><td>${escapeHtml(c.prefix)}</td>
+              <td><input type="number" min="1" class="codes-seq" data-cat="${escapeHtml(c.name)}" value="${cfg.sequences[c.name]||1}" style="width:100px;"></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div class="actions-row"><button class="btn btn-accent" data-action="admin-action" id="codes-save">Save Code Configuration</button></div>
+    </div>
+  `;
+}
+function adminCompanyTab(){
+  const company = STATE.cache.settings.company || {name:'', currency:'GHS'};
+  return `
+    <div class="card">
+      <h3>Company Settings</h3>
+      <div class="form-grid" style="grid-template-columns:1fr 1fr;max-width:600px;">
+        <div class="field"><label>Company Name</label><input type="text" id="company-name" value="${escapeHtml(company.name)}"></div>
+        <div class="field"><label>Reporting Currency</label><input type="text" id="company-currency" value="${escapeHtml(company.currency)}"></div>
+      </div>
+      <div class="actions-row"><button class="btn btn-accent" data-action="admin-action" id="company-save">Save</button></div>
+    </div>
+  `;
+}
+function adminBackupTab(){
+  return `
+    <div class="card">
+      <h3>Create Backup</h3>
+      <p class="note">Download a complete backup of all system data (assets, WIP, transfers, disposals, users, categories, audit log) as a single JSON file. Store it safely and move it to another computer if needed.</p>
+      <button class="btn btn-accent" data-action="admin-action" id="backup-create">Download Full Backup</button>
+    </div>
+    <div class="card">
+      <h3>Restore Backup</h3>
+      <div class="callout warn">Restoring will replace all current data with the contents of the backup file. This cannot be undone. The system validates the file structure before restoring.</div>
+      <input type="file" id="backup-file" accept=".json">
+      <div class="actions-row"><button class="btn btn-danger" data-action="admin-action" id="backup-restore" disabled>Restore From File</button></div>
+    </div>
+  `;
+}
+
+function adminSyncTab(){
+  const cfg = STATE.cache.settings.sync || {webAppUrl:'', secret:'', autoSync:false, lastPush:null, lastPull:null};
+  const fmtWhen = (iso) => iso ? new Date(iso).toLocaleString() : 'Never';
+  return `
+    <div class="card">
+      <h3>Google Sheets Connection</h3>
+      <p class="note">
+        Connects this register to a Google Sheet through a small Apps Script "Web App" bridge
+        (a static site like GitHub Pages can't talk to Google Sheets directly). See the
+        companion <strong>Code.gs</strong> and setup guide provided alongside this file for the
+        one-time Google-side setup — you'll paste the Web App URL and the secret you choose there
+        below.
+      </p>
+      <div class="form-grid" style="grid-template-columns:1fr;">
+        <div class="field"><label>Apps Script Web App URL</label>
+          <input type="text" id="sync-url" placeholder="https://script.google.com/macros/s/XXXXX/exec" value="${escapeHtml(cfg.webAppUrl||'')}"></div>
+        <div class="field"><label>Shared Secret</label>
+          <input type="text" id="sync-secret" placeholder="the same secret you set in Code.gs" value="${escapeHtml(cfg.secret||'')}"></div>
+        <div class="field">
+          <label style="display:flex;align-items:center;gap:8px;font-weight:600;">
+            <input type="checkbox" id="sync-auto" ${cfg.autoSync?'checked':''} style="width:auto;">
+            Automatically push to Google Sheets a few seconds after every change
+          </label>
+        </div>
+      </div>
+      <div class="actions-row"><button class="btn btn-accent" data-action="admin-action" id="sync-save">Save Connection Settings</button></div>
+    </div>
+    <div class="card">
+      <h3>Push &amp; Pull</h3>
+      <div class="callout" style="margin-bottom:14px;">
+        <strong>Push</strong> sends everything in this browser's local register up to the Google
+        Sheet, overwriting the sheet. <strong>Pull</strong> brings the Sheet's data down into this
+        browser, overwriting local data. Push after important work here; Pull when opening the
+        register on a different computer to catch up.
+      </div>
+      <table style="width:100%;max-width:420px;margin-bottom:14px;">
+        <tr><td class="note">Last pushed</td><td><strong>${fmtWhen(cfg.lastPush)}</strong></td></tr>
+        <tr><td class="note">Last pulled</td><td><strong>${fmtWhen(cfg.lastPull)}</strong></td></tr>
+      </table>
+      <div class="actions-row">
+        <button class="btn btn-accent" data-action="admin-action" id="sync-push">Push to Google Sheets</button>
+        <button class="btn btn-outline" data-action="admin-action" id="sync-pull">Pull from Google Sheets</button>
+      </div>
+    </div>
+  `;
+}
+
+
+function viewAuditLog(){
+  const q = STATE.auditQ || '';
+  let rows = STATE.cache.auditLog;
+  if(q){
+    const ql = q.toLowerCase();
+    rows = rows.filter(a => [a.user,a.action,a.entity,a.entityId].some(v=>(v||'').toString().toLowerCase().includes(ql)));
+  }
+  return `
+    <div class="card">
+      <div class="toolbar">
+        <div class="left"><input class="search-input" id="audit-q" placeholder="Search user, action, entity..." value="${escapeHtml(q)}"></div>
+        <div class="right"><button class="btn btn-outline btn-sm" data-action="export-audit-csv">Export CSV</button></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Timestamp</th><th>User</th><th>Action</th><th>Entity</th><th>Entity ID</th><th>Details</th></tr></thead>
+          <tbody>
+            ${rows.length===0 ? `<tr><td colspan="6"><div class="empty-state">No audit entries found.</div></td></tr>` :
+              rows.slice(0,500).map(a=>`<tr>
+                <td>${new Date(a.timestamp).toLocaleString()}</td><td>${escapeHtml(a.user)}</td>
+                <td>${escapeHtml(a.action)}</td><td>${escapeHtml(a.entity)}</td><td>${escapeHtml(a.entityId)}</td>
+                <td><button class="link-btn" data-action="view-audit-detail" data-id="${a.id}">View</button></td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      <p class="note" style="margin-top:8px;">${rows.length} entr${rows.length===1?'y':'ies'} · Audit logs are immutable and cannot be edited or deleted from this interface.</p>
+    </div>
+  `;
+}
+function viewAuditDetail(id){
+  const a = STATE.cache.auditLog.find(x=>x.id===id);
+  if(!a) return;
+  const body = `
+    <p><strong>${escapeHtml(a.action)}</strong> on ${escapeHtml(a.entity)} ${escapeHtml(a.entityId)}</p>
+    <p class="note">By ${escapeHtml(a.user)} at ${new Date(a.timestamp).toLocaleString()}</p>
+    <div class="form-grid" style="grid-template-columns:1fr 1fr;margin-top:12px;">
+      <div><strong>Previous Value</strong><pre style="white-space:pre-wrap;font-size:11.5px;background:#f7f8fa;padding:8px;border-radius:6px;max-height:220px;overflow:auto;">${escapeHtml(prettyJson(a.previousValue))}</pre></div>
+      <div><strong>New Value</strong><pre style="white-space:pre-wrap;font-size:11.5px;background:#f7f8fa;padding:8px;border-radius:6px;max-height:220px;overflow:auto;">${escapeHtml(prettyJson(a.newValue))}</pre></div>
+    </div>
+  `;
+  openModal('Audit Entry', body, `<button class="btn btn-outline" data-action="close-modal">Close</button>`);
+}
+function prettyJson(str){
+  if(!str) return '—';
+  try{ return JSON.stringify(JSON.parse(str), null, 2); } catch(e){ return str; }
+}
+
+/* ---------------------------- EVENT DELEGATION ---------------------------- */
+document.addEventListener('click', async (e)=>{
+  const btn = e.target.closest('[data-action]');
+  if(!btn) return;
+  const action = btn.dataset.action;
+
+  if(action==='nav'){ goTo(btn.dataset.view); return; }
+  if(action==='close-modal'){ closeModal(); return; }
+  if(action==='view-asset'){ showAssetDetail(Number(btn.dataset.id)); return; }
+  if(action==='edit-asset'){ closeModal(); STATE.currentView='newasset'; renderSidebar();
+    document.getElementById('view-title').textContent='Edit Asset';
+    document.getElementById('view-container').innerHTML = viewAssetForm(Number(btn.dataset.id));
+    bindAssetFormAuto(); return; }
+  if(action==='delete-asset'){ deleteAsset(Number(btn.dataset.id)); return; }
+
+  if(action==='reg-clear'){ STATE.regFilters={}; renderView(); return; }
+
+  if(action==='open-wip-project-form'){ wipProjectForm(); return; }
+  if(action==='open-wip-expenditure-form'){ wipExpenditureForm(Number(btn.dataset.id)); return; }
+  if(action==='view-wip-project'){ viewWipProjectDetail(Number(btn.dataset.id)); return; }
+  if(action==='open-wip-reclassify-form'){ wipReclassifyForm(Number(btn.dataset.id)); return; }
+
+  if(action==='open-transfer-form'){ transferForm(); return; }
+  if(action==='approve-transfer'){ approveTransfer(Number(btn.dataset.id)); return; }
+  if(action==='reject-transfer'){ rejectTransfer(Number(btn.dataset.id)); return; }
+
+  if(action==='open-disposal-form'){ disposalForm(); return; }
+  if(action==='approve-disposal'){ approveDisposal(Number(btn.dataset.id)); return; }
+  if(action==='reject-disposal'){ rejectDisposal(Number(btn.dataset.id)); return; }
+
+  if(action==='report-tab'){ STATE.reportsTab = btn.dataset.tab; renderView(); return; }
+  if(action==='report-refresh'){
+    STATE.reportFrom = document.getElementById('report-from').value;
+    STATE.reportTo = document.getElementById('report-to').value || todayStr();
+    renderView(); return;
+  }
+  if(action==='report-export-csv'){
+    const r = STATE._lastReport;
+    if(r) downloadFile(`report_${r.tab}.csv`, arrayToCsv(r.head, r.body), 'text/csv');
+    return;
+  }
+  if(action==='report-print'){ printCurrentReport(); return; }
+  if(action==='export-depreciation'){ exportDepreciationCsv(); return; }
+
+  if(action==='download-migration-template'){ downloadMigrationTemplate(); return; }
+
+  if(action==='export-assets-csv'){ exportAssetsCsv(); return; }
+  if(action==='export-transfers-csv'){ exportTransfersCsv(); return; }
+  if(action==='export-disposals-csv'){ exportDisposalsCsv(); return; }
+  if(action==='export-wip-csv'){ exportWipCsv(); return; }
+  if(action==='export-audit-csv'){ exportAuditCsv(); return; }
+  if(action==='email-report'){
+    window.location.href = `mailto:?subject=Fixed%20Assets%20Report&body=Please%20find%20attached%20the%20exported%20report%20file.%20(Attach%20the%20CSV%20you%20downloaded%20from%20the%20Exports%20page.)`;
+    return;
+  }
+
+  if(action==='admin-tab'){ STATE.adminTab = btn.dataset.tab; renderView(); return; }
+  if(action==='open-user-form'){ userForm(btn.dataset.id?Number(btn.dataset.id):null); return; }
+  if(action==='reset-password'){ resetPasswordModal(Number(btn.dataset.id)); return; }
+  if(action==='toggle-user'){ toggleUserActive(Number(btn.dataset.id)); return; }
+  if(action==='open-category-form'){ categoryForm(btn.dataset.id?Number(btn.dataset.id):null); return; }
+
+  if(action==='view-audit-detail'){ viewAuditDetail(Number(btn.dataset.id)); return; }
+
+  if(btn.id==='codes-save'){
+    const cfg = STATE.cache.settings.codeConfig;
+    cfg.digits = Number(document.getElementById('codes-digits').value)||4;
+    document.querySelectorAll('.codes-seq').forEach(inp=>{ cfg.sequences[inp.dataset.cat] = Number(inp.value)||1; });
+    await dbPut('settings', cfg);
+    await logAudit('Update Code Config', 'Settings', 'codeConfig', null, cfg);
+    await refreshCache();
+    toast('Code configuration saved.', 'success');
+    renderView();
+    return;
+  }
+  if(btn.id==='company-save'){
+    const data = {key:'company', name: document.getElementById('company-name').value, currency: document.getElementById('company-currency').value};
+    await dbPut('settings', data);
+    await logAudit('Update Company Settings', 'Settings', 'company', null, data);
+    await refreshCache();
+    toast('Company settings saved.', 'success');
+    renderView();
+    return;
+  }
+  if(btn.id==='backup-create'){
+    const backup = {};
+    for(const store of ALL_STORES){ backup[store] = await dbGetAll(store); }
+    backup._meta = {exportedAt: new Date().toISOString(), exportedBy: STATE.currentUser.username, version: DB_VERSION};
+    await logAudit('Create Backup', 'System', 'backup', null, {by:STATE.currentUser.username});
+    downloadFile(`fars_backup_${todayStr()}.json`, JSON.stringify(backup, null, 2), 'application/json');
+    toast('Backup downloaded.', 'success');
+    return;
+  }
+  if(btn.id==='backup-restore'){
+    const fileInput = document.getElementById('backup-file');
+    if(!fileInput.files.length) return;
+    confirmDialog('This will replace ALL current data with the backup file contents. This cannot be undone.', async ()=>{
+      const text = await fileInput.files[0].text();
+      let data;
+      try{ data = JSON.parse(text); } catch(e){ toast('Invalid backup file.', 'error'); return; }
+      const validStores = ALL_STORES.filter(s=>Array.isArray(data[s]));
+      if(validStores.length < ALL_STORES.length - 1){ toast('Backup file structure not recognized.', 'error'); return; }
+      for(const store of ALL_STORES){
+        if(!Array.isArray(data[store])) continue;
+        await dbClear(store);
+        for(const rec of data[store]){
+          const clone = {...rec};
+          if(store==='settings'){ await dbPut(store, clone); continue; }
+          delete clone.id;
+          await dbAdd(store, clone);
+        }
+      }
+      await refreshCache();
+      await logAudit('Restore Backup', 'System', 'restore', null, {restoredBy: STATE.currentUser.username});
+      toast('Backup restored successfully.', 'success');
+      goTo('dashboard');
+    }, {okLabel:'Restore Data', title:'Confirm Restore'});
+    return;
+  }
+  if(btn.id==='sync-save'){
+    const cfg = await getSyncConfig();
+    cfg.webAppUrl = document.getElementById('sync-url').value.trim();
+    cfg.secret = document.getElementById('sync-secret').value.trim();
+    cfg.autoSync = document.getElementById('sync-auto').checked;
+    await saveSyncConfig(cfg);
+    await logAudit('Update Sync Settings', 'Settings', 'sync', null, {webAppUrl: cfg.webAppUrl, autoSync: cfg.autoSync});
+    toast('Google Sheets connection settings saved.', 'success');
+    renderView();
+    return;
+  }
+  if(btn.id==='sync-push'){
+    btn.disabled = true;
+    await pushToSheets(false);
+    btn.disabled = false;
+    renderView();
+    return;
+  }
+  if(btn.id==='sync-pull'){
+    await pullFromSheets();
+    return;
+  }
+});
+
+document.addEventListener('change', (e)=>{
+  if(e.target.id==='dep-asof'){ STATE.depAsOf = e.target.value; renderView(); }
+  if(e.target.id==='migration-file'){
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev)=>{
+      const rows = csvToRows(ev.target.result);
+      if(rows.length<2){ document.getElementById('migration-preview').innerHTML = '<p class="text-muted">File appears empty.</p>'; return; }
+      const results = validateMigrationRows(rows);
+      document.getElementById('migration-preview').innerHTML = renderMigrationPreview(results);
+      const importBtn = document.getElementById('migration-import-btn');
+      if(importBtn) importBtn.addEventListener('click', ()=> importValidMigrationRows(results));
+    };
+    reader.readAsText(file);
+  }
+  if(e.target.id==='backup-file'){
+    document.getElementById('backup-restore').disabled = !e.target.files.length;
+  }
+});
+
+document.addEventListener('submit', (e)=>{
+  if(e.target.id==='asset-form'){
+    e.preventDefault();
+    submitAssetForm(e.target).catch(err=>{
+      console.error(err);
+      toast('Could not save this asset: ' + (err && err.message ? err.message : 'unknown error') + '. Nothing was lost — please try again.', 'error');
+    });
+  }
+});
+
+/* ---------------------------- SESSION PERSISTENCE ----------------------------
+   currentUser previously lived only in the STATE object, so ANY page
+   reload (a refresh, the browser restoring the tab, an accidental
+   keystroke) silently dropped the user back to the login screen and
+   lost whatever they were doing. We now remember the signed-in
+   username for this browser tab and restore the session automatically
+   on load, exactly like every normal web app. */
+const SESSION_KEY = 'fars_session_username';
+
+function enterApp(user){
+  STATE.currentUser = user;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-shell').classList.add('active');
+  document.getElementById('topbar-username').textContent = user.fullName || user.username;
+  document.getElementById('topbar-role').textContent = user.role;
+  document.getElementById('topbar-avatar').textContent = (user.fullName||user.username).slice(0,1).toUpperCase();
+  goTo('dashboard');
+}
+
+/* ---------------------------- LOGIN / LOGOUT ---------------------------- */
+document.getElementById('login-form').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const submitBtn = e.target.querySelector('button[type=submit]');
+  const errEl = document.getElementById('login-error');
+  try{
+    const username = document.getElementById('login-username').value.trim();
+    const password = document.getElementById('login-password').value;
+    if(submitBtn) submitBtn.disabled = true;
+    const result = await attemptLogin(username, password);
+    if(!result.ok){
+      errEl.textContent = result.msg;
+      errEl.classList.remove('hidden');
+      return;
+    }
+    errEl.classList.add('hidden');
+    await refreshCache();
+    await logAudit('Login', 'User', result.user.username, null, null);
+    try{ sessionStorage.setItem(SESSION_KEY, result.user.username); }catch(err){ /* private browsing etc. — non-fatal */ }
+    enterApp(result.user);
+  } catch(err){
+    console.error(err);
+    errEl.textContent = 'Sign-in failed: ' + (err && err.message ? err.message : 'unknown error') + '. Please try again.';
+    errEl.classList.remove('hidden');
+  } finally {
+    if(submitBtn) submitBtn.disabled = false;
+  }
+});
+document.getElementById('btn-logout').addEventListener('click', async ()=>{
+  try{ await logAudit('Logout', 'User', STATE.currentUser.username, null, null); }catch(err){ console.error(err); }
+  STATE.currentUser = null;
+  try{ sessionStorage.removeItem(SESSION_KEY); }catch(err){ /* ignore */ }
+  document.getElementById('app-shell').classList.remove('active');
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-username').value = '';
+  document.getElementById('login-password').value = '';
+});
+
+/* ---------------------------- POST-RENDER HOOKS ---------------------------- */
+const originalRenderView = renderView;
+renderView = function(){
+  originalRenderView();
+  if(STATE.currentView==='register') bindRegisterFilters();
+  if(STATE.currentView==='newasset') bindAssetFormAuto();
+};
+
+/* ---------------------------- GLOBAL ERROR HANDLING ----------------------------
+   Nothing should ever fail silently and leave the user guessing why
+   the screen changed. Any error that isn't already caught surfaces as
+   a visible message instead. */
+window.addEventListener('error', (e)=>{
+  console.error(e.error || e.message);
+  toast('Something went wrong: ' + (e.error && e.error.message ? e.error.message : e.message) + '. Your data is safe — please retry.', 'error');
+});
+window.addEventListener('unhandledrejection', (e)=>{
+  console.error(e.reason);
+  const msg = (e.reason && e.reason.message) ? e.reason.message : String(e.reason);
+  toast('Something went wrong: ' + msg + '. Your data is safe — please retry.', 'error');
+});
+
+/* ---------------------------- BOOTSTRAP ---------------------------- */
+(async function init(){
+  try{
+    await openDatabase();
+    await seedIfEmpty();
+    await refreshCache();
+    startLiveSync();
+
+    const isLive = DB_BACKEND === 'cloud';
+    const banner = document.getElementById('storage-mode-banner');
+    if(banner){
+      banner.textContent = isLive
+        ? 'Live shared database — changes sync in real time to everyone using this register.'
+        : 'Local offline storage — data is saved in this browser only on this device.';
+      banner.classList.remove('hidden');
+      setTimeout(()=> banner.classList.add('hidden'), 6000);
+    }
+    const pill = document.getElementById('storage-pill');
+    if(pill){
+      pill.textContent = isLive ? 'Live' : 'Offline';
+      pill.title = isLive
+        ? 'Connected to the live shared database — every signed-in user sees the same data in real time.'
+        : 'Running on local browser storage — data stays on this device only.';
+      pill.classList.remove('hidden');
+      pill.classList.add(isLive ? 'live' : 'offline');
+    }
+
+    // Restore a previously signed-in session in this tab, if any.
+    let savedUsername = null;
+    try{ savedUsername = sessionStorage.getItem(SESSION_KEY); }catch(err){ /* ignore */ }
+    if(savedUsername){
+      const user = STATE.cache.users.find(u=>u.username===savedUsername && u.active!==false);
+      if(user) enterApp(user);
+      else { try{ sessionStorage.removeItem(SESSION_KEY); }catch(err){} }
+    }
+  } catch(err){
+    console.error(err);
+    const errEl = document.getElementById('login-error');
+    if(errEl){
+      errEl.textContent = 'Could not start the application: ' + (err && err.message ? err.message : 'unknown error') + '.';
+      errEl.classList.remove('hidden');
+    }
+  }
+})();
+</script>
+</body>
+</html>
