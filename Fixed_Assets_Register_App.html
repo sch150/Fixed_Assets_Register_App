@@ -268,6 +268,7 @@
   .kpi-card.accent{border-left-color:var(--accent);}
   .kpi-card.green{border-left-color:var(--green);}
   .kpi-card.red{border-left-color:var(--red);}
+  .kpi-card.amber{border-left-color:var(--amber);}
   table{width:100%;border-collapse:collapse;font-size:13.5px;}
   thead th{
     background:var(--table-head);
@@ -483,7 +484,7 @@
    dbClear) regardless of which backend is active. ------------------- */
 const DB_NAME = 'farsDB';
 const DB_VERSION = 1;
-const ALL_STORES = ['users','categories','assets','wipProjects','wipExpenditure','transfers','disposals','auditLog','settings'];
+const ALL_STORES = ['users','categories','assets','wipProjects','wipExpenditure','transfers','disposals','auditLog','settings','chartOfAccounts','depreciationRuns'];
 
 let DB = null;            // IndexedDB handle (idb backend only)
 let CLOUD_DB = null;      // db capability namespace (cloud backend only)
@@ -725,14 +726,14 @@ async function seedIfEmpty(){
   const cats = await dbGetAll('categories');
   if(cats.length===0){
     const defaults = [
-      {name:'Land', rate:0, method:'Not Depreciated', prefix:'LAND'},
-      {name:'Buildings', rate:2, method:'Straight Line', prefix:'BLD'},
-      {name:'Furniture & Fittings', rate:15, method:'Straight Line', prefix:'FF'},
-      {name:'Motor Vehicles', rate:20, method:'Straight Line', prefix:'MV'},
-      {name:'Office Equipment', rate:20, method:'Straight Line', prefix:'OE'},
-      {name:'Computers & Accessories', rate:20, method:'Straight Line', prefix:'COMP'},
-      {name:'WIP – Construction/Projects', rate:0, method:'Not Depreciated', prefix:'WIP'},
-      {name:'WIP – Software', rate:0, method:'Not Depreciated', prefix:'SW-WIP'}
+      {name:'Land', rate:0, method:'Not Depreciated', prefix:'LAND', costAccount:'1100', accumDepAccount:''},
+      {name:'Buildings', rate:2, method:'Straight Line', prefix:'BLD', costAccount:'1110', accumDepAccount:'1111'},
+      {name:'Furniture & Fittings', rate:15, method:'Straight Line', prefix:'FF', costAccount:'1120', accumDepAccount:'1121'},
+      {name:'Motor Vehicles', rate:20, method:'Straight Line', prefix:'MV', costAccount:'1130', accumDepAccount:'1131'},
+      {name:'Office Equipment', rate:20, method:'Straight Line', prefix:'OE', costAccount:'1140', accumDepAccount:'1141'},
+      {name:'Computers & Accessories', rate:20, method:'Straight Line', prefix:'COMP', costAccount:'1150', accumDepAccount:'1151'},
+      {name:'WIP – Construction/Projects', rate:0, method:'Not Depreciated', prefix:'WIP', costAccount:'1160', accumDepAccount:''},
+      {name:'WIP – Software', rate:0, method:'Not Depreciated', prefix:'SW-WIP', costAccount:'1170', accumDepAccount:''}
     ];
     for(const c of defaults){ await dbAdd('categories', c); }
   }
@@ -747,12 +748,41 @@ async function seedIfEmpty(){
   if(!companySettings){
     await dbAdd('settings', {key:'company', name:'Company Name Ltd.', currency:'GHS'});
   }
+  const coa = await dbGetAll('chartOfAccounts');
+  if(coa.length===0){
+    const defaults = [
+      {code:'1100', name:'Land - Cost', type:'Asset'},
+      {code:'1110', name:'Buildings - Cost', type:'Asset'},
+      {code:'1111', name:'Buildings - Accumulated Depreciation', type:'Contra-Asset'},
+      {code:'1120', name:'Furniture & Fittings - Cost', type:'Asset'},
+      {code:'1121', name:'Furniture & Fittings - Accumulated Depreciation', type:'Contra-Asset'},
+      {code:'1130', name:'Motor Vehicles - Cost', type:'Asset'},
+      {code:'1131', name:'Motor Vehicles - Accumulated Depreciation', type:'Contra-Asset'},
+      {code:'1140', name:'Office Equipment - Cost', type:'Asset'},
+      {code:'1141', name:'Office Equipment - Accumulated Depreciation', type:'Contra-Asset'},
+      {code:'1150', name:'Computers & Accessories - Cost', type:'Asset'},
+      {code:'1151', name:'Computers & Accessories - Accumulated Depreciation', type:'Contra-Asset'},
+      {code:'1160', name:'Work-in-Progress - Construction/Projects', type:'Asset'},
+      {code:'1170', name:'Work-in-Progress - Software', type:'Asset'},
+      {code:'1010', name:'Cash / Bank', type:'Asset'},
+      {code:'2010', name:'Accounts Payable / Creditors', type:'Liability'},
+      {code:'5100', name:'Depreciation Expense', type:'Expense'},
+      {code:'7100', name:'Gain on Disposal of Fixed Assets', type:'Income'},
+      {code:'5200', name:'Loss on Disposal of Fixed Assets', type:'Expense'}
+    ];
+    for(const a of defaults){ await dbAdd('chartOfAccounts', a); }
+  }
+  const acctSettings = await dbGet('settings','accounts');
+  if(!acctSettings){
+    await dbAdd('settings', {key:'accounts', depreciationExpense:'5100', gainOnDisposal:'7100', lossOnDisposal:'5200', cashBank:'1010', creditors:'2010'});
+  }
 }
 
 async function refreshCache(){
-  const [users, categories, assets, wipProjects, wipExpenditure, transfers, disposals, auditLog] = await Promise.all([
+  const [users, categories, assets, wipProjects, wipExpenditure, transfers, disposals, auditLog, chartOfAccounts, depreciationRuns] = await Promise.all([
     dbGetAll('users'), dbGetAll('categories'), dbGetAll('assets'), dbGetAll('wipProjects'),
-    dbGetAll('wipExpenditure'), dbGetAll('transfers'), dbGetAll('disposals'), dbGetAll('auditLog')
+    dbGetAll('wipExpenditure'), dbGetAll('transfers'), dbGetAll('disposals'), dbGetAll('auditLog'),
+    dbGetAll('chartOfAccounts'), dbGetAll('depreciationRuns')
   ]);
   STATE.cache.users = users;
   STATE.cache.categories = categories;
@@ -762,10 +792,13 @@ async function refreshCache(){
   STATE.cache.transfers = transfers;
   STATE.cache.disposals = disposals;
   STATE.cache.auditLog = auditLog.sort((a,b)=> new Date(b.timestamp)-new Date(a.timestamp));
+  STATE.cache.chartOfAccounts = chartOfAccounts;
+  STATE.cache.depreciationRuns = depreciationRuns.sort((a,b)=> (b.toDate||'').localeCompare(a.toDate||''));
   const codeConfig = await dbGet('settings','codeConfig');
   const company = await dbGet('settings','company');
   const sync = await dbGet('settings','sync') || {key:'sync', webAppUrl:'', secret:'', autoSync:false, lastPush:null, lastPull:null};
-  STATE.cache.settings = {codeConfig, company, sync};
+  const accounts = await dbGet('settings','accounts') || {key:'accounts', depreciationExpense:'5100', gainOnDisposal:'7100', lossOnDisposal:'5200', cashBank:'1010', creditors:'2010'};
+  STATE.cache.settings = {codeConfig, company, sync, accounts};
 }
 
 /* ---------------------------- DEPRECIATION ENGINE ---------------------------- */
@@ -789,16 +822,63 @@ function computeDepreciation(asset, asOfDateStr){
   const rate = (Number(asset.depreciationRate)||0)/100;
   const annual = cost * rate;
   const monthly = annual/12;
-  const start = asset.depreciationStartDate ? new Date(asset.depreciationStartDate) : null;
+  const opening = Number(asset.openingAccumDep)||0;
+  const control = asset.depreciationControl || 'Depreciate';
+
+  // Manual override: treat as fully depreciated regardless of the computed
+  // schedule (useful for pre-2026 assets carried in at their already-final
+  // balance). NBV is always floored at 0, so this can never go negative.
+  if(control === 'Fully Depreciated'){
+    const accumulated = cost;
+    return { annual, monthly, accumulated, nbv: 0, currentPeriod: 0, fullyDepreciated: true, monthsToFullyDepreciate: 0, depEndDate: asset.openingAccumDepDate || asset.depreciationStartDate || null };
+  }
+  // Manual override: depreciation is held / not yet started. Any opening
+  // balance is kept as a static figure and does not progress over time.
+  if(control === 'Do Not Start'){
+    const accumulated = Math.min(Math.max(0, opening), cost);
+    const nbv = Math.max(0, cost - accumulated);
+    return { annual, monthly, accumulated, nbv, currentPeriod: 0, fullyDepreciated: cost>0 && accumulated>=cost-0.005, monthsToFullyDepreciate: null, depEndDate: null };
+  }
+
+  // Existing assets migrated into the register can carry an opening
+  // accumulated-depreciation balance (as at the day before "effective from").
+  // From "effective from" onward, normal monthly charges continue exactly
+  // as they would from depreciationStartDate for a brand-new asset.
+  const effectiveStart = (opening>0 && asset.openingAccumDepDate) ? asset.openingAccumDepDate : asset.depreciationStartDate;
+  const start = effectiveStart ? new Date(effectiveStart) : null;
   let accumulated = 0, months = 0;
   if(start && monthly>0){
     months = monthsElapsed(start, asOf);
-    accumulated = monthly * months;
+    accumulated = opening + (monthly * months);
+    // Depreciation is never allowed to exceed cost (and therefore NBV can
+    // never go negative), no matter how large an entered opening balance is.
     if(accumulated > cost) accumulated = cost;
+    if(accumulated < 0) accumulated = 0;
   }
   const nbv = Math.max(0, cost - accumulated);
   const currentPeriod = (months>0) ? Math.min(monthly, cost - Math.max(0, accumulated-monthly)) : 0;
-  return { annual, monthly, accumulated, nbv, currentPeriod: Math.max(0,currentPeriod), fullyDepreciated: cost>0 && accumulated>=cost-0.005 };
+  let monthsToFullyDepreciate = null, depEndDate = null;
+  if(start && monthly>0 && cost>0){
+    monthsToFullyDepreciate = Math.max(0, Math.ceil((cost - opening) / monthly) - 1);
+    const end = new Date(start.getFullYear(), start.getMonth() + monthsToFullyDepreciate + 1, 0);
+    depEndDate = end.toISOString().slice(0,10);
+  }
+  return { annual, monthly, accumulated, nbv, currentPeriod: Math.max(0,currentPeriod), fullyDepreciated: cost>0 && accumulated>=cost-0.005, monthsToFullyDepreciate, depEndDate };
+}
+function assetOverDepreciatedFlag(asset){
+  // True when the raw entered opening balance exceeds cost — the computed
+  // NBV is still always floored at 0 regardless, this is purely a data-
+  // quality flag for the person maintaining the register to review.
+  return (Number(asset.openingAccumDep)||0) > (Number(asset.cost)||0);
+}
+function depreciationStatusLabel(asset, asOfDateStr){
+  const control = asset.depreciationControl || 'Depreciate';
+  if(control === 'Do Not Start') return 'Not Started (Held)';
+  if(control === 'Fully Depreciated') return 'Fully Depreciated (Opening Balance)';
+  if((asset.category||'').startsWith('WIP')) return 'Not Depreciable (WIP)';
+  if(!(Number(asset.depreciationRate)>0)) return 'Not Depreciable';
+  const r = computeDepreciation(asset, asOfDateStr||todayStr());
+  return r.fullyDepreciated ? 'Fully Depreciated' : 'Depreciating';
 }
 
 /* ---------------------------- ASSET CODE GENERATION ---------------------------- */
@@ -916,6 +996,7 @@ function viewDashboard(){
   const wipBalance = STATE.cache.wipProjects.filter(p=>p.status!=='Reclassified')
     .reduce((s,p)=> s + wipProjectTotal(p.id), 0);
   const disposedCount = assets.filter(a=>a.status==='Disposed').length;
+  const flaggedCount = active.filter(assetOverDepreciatedFlag).length;
   const currency = (STATE.cache.settings.company && STATE.cache.settings.company.currency) || 'GHS';
 
   // breakdown by category
@@ -939,6 +1020,7 @@ function viewDashboard(){
       <div class="kpi-card accent"><div class="kpi-label">WIP Balance</div><div class="kpi-value">${currency} ${fmtMoney(wipBalance)}</div></div>
       <div class="kpi-card"><div class="kpi-label">Disposed Assets</div><div class="kpi-value">${disposedCount}</div></div>
       <div class="kpi-card"><div class="kpi-label">Fully Depreciated</div><div class="kpi-value">${fullyDep}</div></div>
+      <div class="kpi-card amber"><div class="kpi-label">Flagged for Review</div><div class="kpi-value">${flaggedCount}</div></div>
     </div>
     <div class="card">
       <h3>Cost by Asset Category</h3>
@@ -1036,12 +1118,13 @@ function viewRegister(){
         <table>
           <thead><tr>
             <th>Asset Code</th><th>Description</th><th>Category</th><th>Location</th><th>Department</th>
-            <th class="text-right">Cost</th><th class="text-right">Acc. Dep.</th><th class="text-right">NBV</th><th>Status</th><th></th>
+            <th class="text-right">Cost</th><th class="text-right">Acc. Dep.</th><th class="text-right">NBV</th><th>Status</th><th>Dep. Status</th><th></th>
           </tr></thead>
           <tbody>
-            ${rows.length===0 ? `<tr><td colspan="10"><div class="empty-state">No assets match the current filters.</div></td></tr>` :
+            ${rows.length===0 ? `<tr><td colspan="11"><div class="empty-state">No assets match the current filters.</div></td></tr>` :
               rows.map(a=>{
                 const r = computeDepreciation(a, today);
+                const flagged = assetOverDepreciatedFlag(a);
                 return `<tr>
                   <td><strong>${escapeHtml(a.assetCode)}</strong></td>
                   <td>${escapeHtml(a.description)}</td>
@@ -1050,8 +1133,9 @@ function viewRegister(){
                   <td>${escapeHtml(a.department||'—')}</td>
                   <td class="text-right money">${currency} ${fmtMoney(a.cost)}</td>
                   <td class="text-right money">${currency} ${fmtMoney(r.accumulated)}</td>
-                  <td class="text-right money">${currency} ${fmtMoney(r.nbv)}</td>
+                  <td class="text-right money">${currency} ${fmtMoney(r.nbv)}${flagged?' <span title="Opening Accumulated Depreciation exceeds Cost — flagged for review. NBV is shown as 0, not negative.">⚠️</span>':''}</td>
                   <td>${statusBadge(a.status)}</td>
+                  <td>${depStatusBadge(depreciationStatusLabel(a, today))}</td>
                   <td><button class="link-btn" data-action="view-asset" data-id="${a.id}">View</button></td>
                 </tr>`;
               }).join('')}
@@ -1061,6 +1145,10 @@ function viewRegister(){
       <p class="note" style="margin-top:10px;">${rows.length} of ${STATE.cache.assets.length} asset record(s) shown.</p>
     </div>
   `;
+}
+function depStatusBadge(label){
+  const cls = label.startsWith('Fully Depreciated') ? 'fully' : label.startsWith('Not Started') ? 'wip' : label.startsWith('Not Depreciable') ? 'transferred' : 'active';
+  return `<span class="badge ${cls}">${escapeHtml(label)}</span>`;
 }
 function statusBadge(status){
   const map = {'Active':'active','WIP':'wip','Fully Depreciated':'fully','Transferred':'transferred','Disposed':'disposed','Reclassified':'reclassified','Under Review':'review'};
@@ -1110,8 +1198,11 @@ function showAssetDetail(id){
       <div><strong>Cost</strong><div>${currency} ${fmtMoney(a.cost)}</div></div>
       <div><strong>Depreciation Start</strong><div>${fmtDate(a.depreciationStartDate)}</div></div>
       <div><strong>Depreciation Rate</strong><div>${a.depreciationRate}% (${escapeHtml(a.depreciationMethod)})</div></div>
+      <div><strong>Depreciation Control</strong><div>${escapeHtml(a.depreciationControl||'Depreciate')}</div></div>
       <div><strong>Accumulated Depreciation</strong><div>${currency} ${fmtMoney(r.accumulated)}</div></div>
-      <div><strong>Net Book Value</strong><div>${currency} ${fmtMoney(r.nbv)}</div></div>
+      <div><strong>Net Book Value</strong><div>${currency} ${fmtMoney(r.nbv)}${assetOverDepreciatedFlag(a)?' ⚠️':''}</div></div>
+      <div><strong>Depreciation Status</strong><div>${depStatusBadge(depreciationStatusLabel(a, todayStr()))}</div></div>
+      <div><strong>Depreciation End Date</strong><div>${r.depEndDate?fmtDate(r.depEndDate):'—'}</div></div>
       <div><strong>Location</strong><div>${escapeHtml(a.location||'—')}</div></div>
       <div><strong>Department</strong><div>${escapeHtml(a.department||'—')}</div></div>
       <div><strong>Staff Assigned</strong><div>${escapeHtml(a.staffAssigned||'—')}</div></div>
@@ -1119,6 +1210,7 @@ function showAssetDetail(id){
       <div><strong>Serial Number</strong><div>${escapeHtml(a.serialNumber||'—')}</div></div>
       <div><strong>Supplier</strong><div>${escapeHtml(a.supplier||'—')}</div></div>
     </div>
+    ${assetOverDepreciatedFlag(a) ? `<div class="callout" style="margin-top:12px;background:var(--amber-bg);color:var(--amber);">⚠️ Opening Accumulated Depreciation (${currency} ${fmtMoney(a.openingAccumDep)}) exceeds Cost (${currency} ${fmtMoney(a.cost)}). Flagged for review — Net Book Value is shown as 0, never negative, and the register continues to function normally.</div>` : ''}
     ${a.remarks ? `<p style="margin-top:12px;"><strong>Remarks:</strong> ${escapeHtml(a.remarks)}</p>` : ''}
     ${disposalForAsset ? `<div class="callout danger" style="margin-top:12px;">Disposed on ${escapeHtml(disposalForAsset.disposalDate)} — Gain/Loss: ${currency} ${fmtMoney(disposalForAsset.gainLoss)}</div>` : ''}
     ${transfersForAsset.length ? `<p style="margin-top:12px;"><strong>Transfer history:</strong> ${transfersForAsset.length} record(s) — see Transfers module.</p>` : ''}
@@ -1132,11 +1224,114 @@ function showAssetDetail(id){
 }
 
 /* ---------------------------- ASSET FORM (NEW / EDIT) ---------------------------- */
+function quickGridRowHtml(idx, cats){
+  return `<tr data-row="${idx}">
+    <td><select name="g_category_${idx}" style="min-width:150px;">
+      <option value="">Select…</option>
+      ${cats.map(c=>`<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('')}
+    </select></td>
+    <td><input type="text" name="g_description_${idx}" style="min-width:180px;"></td>
+    <td><input type="date" name="g_acqdate_${idx}"></td>
+    <td><input type="number" step="0.01" min="0" name="g_cost_${idx}" style="width:110px;"></td>
+    <td><input type="text" name="g_location_${idx}" style="width:110px;"></td>
+    <td><input type="text" name="g_department_${idx}" style="width:110px;"></td>
+    <td><input type="number" step="0.01" min="0" name="g_opendep_${idx}" style="width:110px;" title="Opening Accumulated Depreciation — only for an asset already in use"></td>
+    <td><input type="date" name="g_opendate_${idx}" title="Opening Balance Effective From"></td>
+    <td><select name="g_depcontrol_${idx}" style="min-width:130px;" title="Depreciation Control">
+      <option value="Depreciate" selected>Depreciate</option>
+      <option value="Fully Depreciated">Fully Depreciated</option>
+      <option value="Do Not Start">Do Not Start</option>
+    </select></td>
+    <td><button type="button" class="link-btn danger" data-action="grid-remove-row" data-row="${idx}">Remove</button></td>
+  </tr>`;
+}
+async function createAssetFromRowData(data){
+  const cat = STATE.cache.categories.find(c=>c.name===data.category);
+  if(!cat) return {ok:false, error:'Unknown category'};
+  if(!data.description || !data.acquisitionDate || !(data.cost>0)) return {ok:false, error:'Missing required field'};
+  if(data.openingAccumDep>0 && !data.openingAccumDepDate) return {ok:false, error:'Opening Accum. Dep. given without an Opening Date'};
+  let flagged = false;
+  if(data.openingAccumDep > data.cost) flagged = true; // saved anyway — NBV is always floored at 0, never blocks the register
+  const assetCode = await generateAssetCode(data.category);
+  const asset = {
+    assetCode, assetTag:'', category: data.category, description: data.description,
+    acquisitionDate: data.acquisitionDate, supplier:'', invoiceRef:'', cost: data.cost,
+    currency: (STATE.cache.settings.company&&STATE.cache.settings.company.currency)||'GHS',
+    depreciationStartDate: fmtDate(calcDepStartDate(data.acquisitionDate)),
+    location: data.location||'', department: data.department||'', project:'', staffAssigned:'', costCentre:'',
+    depreciationRate: cat.rate, depreciationMethod: cat.method, status:'Active',
+    serialNumber:'', warrantyExpiry:'', docRef:'', remarks:'',
+    openingAccumDep: data.openingAccumDep||0, openingAccumDepDate: data.openingAccumDepDate||'',
+    depreciationControl: data.depreciationControl || 'Depreciate',
+    createdAt: new Date().toISOString(), createdBy: STATE.currentUser.username
+  };
+  await dbAdd('assets', asset);
+  STATE.cache.assets.push(asset);
+  return {ok:true, assetCode, flagged};
+}
+async function saveQuickGridRows(){
+  const tbody = document.getElementById('quick-grid-body');
+  const trs = Array.from(tbody.querySelectorAll('tr[data-row]'));
+  let saved = 0, skippedBlank = 0, flaggedCount = 0;
+  const errors = [];
+  for(const tr of trs){
+    const idx = tr.dataset.row;
+    const val = name => { const el = tr.querySelector(`[name="g_${name}_${idx}"]`); return el ? el.value.trim() : ''; };
+    const category = val('category'), description = val('description'), acqdate = val('acqdate'), cost = val('cost');
+    if(!category && !description && !acqdate && !cost){ skippedBlank++; continue; }
+    const data = {
+      category, description, acquisitionDate: acqdate, cost: Number(cost)||0,
+      location: val('location'), department: val('department'),
+      openingAccumDep: Number(val('opendep'))||0, openingAccumDepDate: val('opendate'),
+      depreciationControl: val('depcontrol') || 'Depreciate'
+    };
+    const result = await createAssetFromRowData(data);
+    if(result.ok){ saved++; if(result.flagged) flaggedCount++; }
+    else errors.push(`Row ${Number(idx)+1}: ${result.error}`);
+  }
+  if(saved>0){
+    await logAudit('Quick Grid Add', 'Assets', `${saved} record(s)`, null, {count:saved, flaggedCount});
+    await refreshCache();
+  }
+  if(errors.length){
+    toast(`Saved ${saved} asset(s). ${errors.length} row(s) had problems: ${errors.join('; ')}`, saved>0?'info':'error');
+  } else if(saved>0){
+    toast(`${saved} asset(s) saved.${flaggedCount?` ${flaggedCount} flagged for review (opening balance exceeds cost) — see the Asset Register.`:''}`, 'success');
+  } else {
+    toast('Nothing to save — fill in at least one row.', 'error');
+  }
+  if(saved>0){ STATE.gridRowSeq = 3; goTo('register'); }
+}
 function viewAssetForm(editId){
   const editing = STATE.cache.assets.find(a=>a.id===editId);
   const cats = STATE.cache.categories;
   const currency = (STATE.cache.settings.company && STATE.cache.settings.company.currency) || 'GHS';
-  return `
+  if(!editing && STATE.gridRowSeq===undefined) STATE.gridRowSeq = 3;
+  const quickGrid = editing ? '' : `
+    <div class="card">
+      <div class="toolbar">
+        <div class="left"><h3 style="margin:0;">Quick Add Multiple Assets (Grid)</h3></div>
+        <div class="right">
+          <button type="button" class="btn btn-outline btn-sm" data-action="grid-add-row">+ Add Row</button>
+          <button type="button" class="btn btn-accent btn-sm" data-action="grid-save-all">Save All Rows</button>
+        </div>
+      </div>
+      <p class="note">Enter several assets at once, spreadsheet-style — faster than the full form below for bulk data entry. Only Category, Description, Acquisition Date and Cost are required per row; leave Opening Accum. Dep. blank for a genuinely new asset. Rows left completely blank are skipped automatically.</p>
+      <div class="table-wrap">
+        <table id="quick-grid-table">
+          <thead><tr>
+            <th>Category *</th><th>Description *</th><th>Acq. Date *</th><th class="text-right">Cost *</th>
+            <th>Location</th><th>Department</th><th class="text-right">Opening Accum. Dep.</th><th>Opening Date</th><th>Depreciation Control</th><th></th>
+          </tr></thead>
+          <tbody id="quick-grid-body">
+            ${Array.from({length: STATE.gridRowSeq}).map((_,i)=>quickGridRowHtml(i, cats)).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+  return quickGrid + `
+    ${editing ? '' : '<h3 style="margin:18px 0 8px;">Or Add a Single Asset (Full Form)</h3>'}
     <form id="asset-form" class="card" onsubmit="return false;">
       <input type="hidden" name="id" value="${editing?editing.id:''}">
       <fieldset>
@@ -1190,6 +1385,15 @@ function viewAssetForm(editId){
             </select>
             <span class="note">Status is normally managed automatically by transfers, disposals and reclassification. Manual changes here require care.</span>
           </div>
+          <div class="field"><label>Opening Accumulated Depreciation</label><input type="number" step="0.01" min="0" name="openingAccumDep" value="${editing?(editing.openingAccumDep||0):0}">
+            <span class="note">Only for an asset already in use before joining this register — enter the depreciation already accumulated up to "Effective From" below. Leave 0 for a genuinely new asset.</span></div>
+          <div class="field"><label>Opening Balance Effective From</label><input type="date" name="openingAccumDepDate" value="${editing?(editing.openingAccumDepDate||''):''}">
+            <span class="note">The date the Opening Accumulated Depreciation figure is as at. Depreciation continues being charged monthly from this date forward.</span></div>
+          <div class="field"><label>Depreciation Control</label>
+            <select name="depreciationControl">
+              ${['Depreciate','Fully Depreciated','Do Not Start'].map(s=>`<option value="${s}" ${(editing?(editing.depreciationControl||'Depreciate'):'Depreciate')===s?'selected':''}>${s}</option>`).join('')}
+            </select>
+            <span class="note">For pre-2026 assets carried in from a prior informal register: choose <strong>Fully Depreciated</strong> to fix NBV at 0 regardless of the schedule, or <strong>Do Not Start</strong> to hold depreciation entirely. Leave as <strong>Depreciate</strong> for normal ongoing calculation.</span></div>
         </div>
       </fieldset>
 
@@ -1204,7 +1408,7 @@ function viewAssetForm(editId){
       </fieldset>
 
       <div class="actions-row">
-        <button type="submit" class="btn btn-accent">${editing?'Save Changes':'Register Asset'}</button>
+        <button type="submit" class="btn btn-accent">${editing?'Update Asset':'Save Asset'}</button>
         <button type="button" class="btn btn-outline" data-action="nav" data-view="register">Cancel</button>
       </div>
     </form>
@@ -1263,10 +1467,19 @@ async function submitAssetForm(form){
     serialNumber: fd.get('serialNumber')||'',
     warrantyExpiry: fd.get('warrantyExpiry')||'',
     docRef: fd.get('docRef')||'',
-    remarks: fd.get('remarks')||''
+    remarks: fd.get('remarks')||'',
+    openingAccumDep: Number(fd.get('openingAccumDep'))||0,
+    openingAccumDepDate: fd.get('openingAccumDepDate')||'',
+    depreciationControl: fd.get('depreciationControl')||'Depreciate'
   };
   if(!data.description || !data.acquisitionDate || !data.cost){
     toast('Please complete all mandatory fields.', 'error'); return;
+  }
+  if(data.openingAccumDep > 0 && !data.openingAccumDepDate){
+    toast('Please give an "Opening Balance Effective From" date to go with the Opening Accumulated Depreciation amount.', 'error'); return;
+  }
+  if(data.openingAccumDep > data.cost){
+    toast('Note: Opening Accumulated Depreciation exceeds Asset Cost — saved anyway, but flagged for review in the register. Net Book Value will show as 0, never negative.', 'info');
   }
 
   if(id){
@@ -1714,11 +1927,59 @@ async function rejectDisposal(id){
 }
 
 /* ---------------------------- DEPRECIATION VIEW ---------------------------- */
+function firstDayOfMonthStr(dateStr){
+  const d = new Date(dateStr+'T00:00:00');
+  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0,10);
+}
+function addDaysStr(dateStr, n){
+  const d = new Date(dateStr+'T00:00:00');
+  d.setDate(d.getDate()+n);
+  return d.toISOString().slice(0,10);
+}
+function accountName(code){
+  const a = (STATE.cache.chartOfAccounts||[]).find(x=>x.code===code);
+  return a ? a.name : (code ? `Account ${code}` : '(unmapped account — set this in Administration → Chart of Accounts)');
+}
+
 function viewDepreciation(){
   const asOf = STATE.depAsOf || todayStr();
   const currency = (STATE.cache.settings.company && STATE.cache.settings.company.currency) || 'GHS';
   const rows = activeAssets();
+  const runs = STATE.cache.depreciationRuns || [];
+  const defaultFrom = STATE.depRunFrom || firstDayOfMonthStr(asOf);
+  const defaultTo = STATE.depRunTo || asOf;
   return `
+    <div class="card">
+      <h3>Run Depreciation for a Period</h3>
+      <p class="note">Calculates the depreciation charge for every active, depreciable asset across the dates below and posts it as a Depreciation Run. Each run can be turned into a downloadable Journal Voucher under Reports → Journal Vouchers.</p>
+      <div class="toolbar">
+        <div class="left">
+          <label style="font-size:12.5px;">From</label>
+          <input type="date" id="dep-run-from" value="${defaultFrom}">
+          <label style="font-size:12.5px;">To</label>
+          <input type="date" id="dep-run-to" value="${defaultTo}">
+        </div>
+        <div class="right">
+          <button class="btn btn-accent btn-sm" data-action="run-depreciation">Run Depreciation</button>
+        </div>
+      </div>
+      ${runs.length ? `
+      <div class="table-wrap" style="margin-top:14px;">
+        <table>
+          <thead><tr><th>Period</th><th>Run Date</th><th>Run By</th><th class="text-right">Total Charge</th><th>Assets</th><th></th></tr></thead>
+          <tbody>
+            ${runs.map(r=>`<tr>
+              <td>${fmtDate(r.fromDate)} – ${fmtDate(r.toDate)}</td>
+              <td>${fmtDate(r.runDate)}</td>
+              <td>${escapeHtml(r.runBy)}</td>
+              <td class="text-right money">${currency} ${fmtMoney(r.totalCharge)}</td>
+              <td>${r.lines.length}</td>
+              <td><button class="btn btn-sm btn-outline" data-action="view-dep-run" data-id="${r.id}">View Journal Voucher</button></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>` : `<p class="note" style="margin-top:10px;">No depreciation runs posted yet.</p>`}
+    </div>
     <div class="card">
       <div class="toolbar">
         <div class="left">
@@ -1759,6 +2020,114 @@ function viewDepreciation(){
   `;
 }
 
+async function runDepreciationForPeriod(fromDate, toDate){
+  if(!fromDate || !toDate || toDate < fromDate){ toast('Please give a valid From/To date range.', 'error'); return; }
+  const overlap = (STATE.cache.depreciationRuns||[]).some(r => fromDate <= r.toDate && toDate >= r.fromDate);
+  const doRun = async ()=>{
+    const openingAsOf = addDaysStr(fromDate, -1);
+    const lines = [];
+    let totalCharge = 0;
+    for(const a of activeAssets()){
+      if(!(Number(a.depreciationRate)>0)) continue;
+      const opening = computeDepreciation(a, openingAsOf);
+      const closing = computeDepreciation(a, toDate);
+      const charge = Math.max(0, closing.accumulated - opening.accumulated);
+      if(charge <= 0) continue;
+      lines.push({ assetId: a.id, assetCode: a.assetCode, category: a.category, description: a.description,
+        openingNBV: opening.nbv, charge, closingNBV: closing.nbv });
+      totalCharge += charge;
+    }
+    if(lines.length === 0){ toast('No depreciation charge falls within that period for any active asset.', 'error'); return; }
+    const run = { fromDate, toDate, runDate: todayStr(), runBy: STATE.currentUser.username, totalCharge, lines, createdAt: new Date().toISOString() };
+    const newId = await dbAdd('depreciationRuns', run);
+    await logAudit('Run Depreciation', 'DepreciationRun', `${fromDate} to ${toDate}`, null, {totalCharge, assetCount:lines.length});
+    await refreshCache();
+    const currency = (STATE.cache.settings.company && STATE.cache.settings.company.currency) || 'GHS';
+    toast(`Depreciation run posted: ${currency} ${fmtMoney(totalCharge)} across ${lines.length} asset(s).`, 'success');
+    renderView();
+  };
+  if(overlap){
+    confirmDialog('This period overlaps a depreciation run already posted. Running it again will double-count depreciation for the overlapping days unless that is what you intend. Continue anyway?', doRun, {okLabel:'Run Anyway', title:'Overlapping Period'});
+  } else {
+    await doRun();
+  }
+}
+
+function buildDepreciationRunJVLines(run){
+  const acct = STATE.cache.settings.accounts || {};
+  const byCategory = {};
+  run.lines.forEach(l=>{ byCategory[l.category] = (byCategory[l.category]||0) + l.charge; });
+  const lines = [{ account: acct.depreciationExpense, accountName: accountName(acct.depreciationExpense),
+    description: `Depreciation expense for period ${fmtDate(run.fromDate)} – ${fmtDate(run.toDate)}`, debit: run.totalCharge, credit: 0 }];
+  Object.entries(byCategory).forEach(([cat, amt])=>{
+    const c = STATE.cache.categories.find(x=>x.name===cat);
+    const code = c ? c.accumDepAccount : '';
+    lines.push({ account: code, accountName: accountName(code), description: `Accumulated depreciation – ${cat}`, debit: 0, credit: amt });
+  });
+  return lines;
+}
+
+function viewDepreciationRunJV(runId){
+  const run = STATE.cache.depreciationRuns.find(r=>r.id===runId);
+  if(!run) return;
+  const currency = (STATE.cache.settings.company && STATE.cache.settings.company.currency) || 'GHS';
+  const lines = buildDepreciationRunJVLines(run);
+  const totalDr = lines.reduce((s,l)=>s+l.debit,0), totalCr = lines.reduce((s,l)=>s+l.credit,0);
+  const body = `
+    <p class="note">Period ${fmtDate(run.fromDate)} – ${fmtDate(run.toDate)} &nbsp;·&nbsp; Run by ${escapeHtml(run.runBy)} on ${fmtDate(run.runDate)}</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Account</th><th>Description</th><th class="text-right">Debit</th><th class="text-right">Credit</th></tr></thead>
+        <tbody>
+          ${lines.map(l=>`<tr><td>${escapeHtml(l.account||'—')} — ${escapeHtml(l.accountName)}</td><td>${escapeHtml(l.description)}</td>
+            <td class="text-right money">${l.debit?currency+' '+fmtMoney(l.debit):''}</td><td class="text-right money">${l.credit?currency+' '+fmtMoney(l.credit):''}</td></tr>`).join('')}
+          <tr><td colspan="2"><strong>Total</strong></td><td class="text-right money"><strong>${currency} ${fmtMoney(totalDr)}</strong></td><td class="text-right money"><strong>${currency} ${fmtMoney(totalCr)}</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+  const foot = `<button class="btn btn-outline" data-action="close-modal">Close</button><button class="btn btn-accent" data-action="download-dep-run-jv" data-id="${run.id}">Download CSV</button>`;
+  openModal(`Journal Voucher — Depreciation Run`, body, foot);
+}
+
+function downloadDepreciationRunJVCsv(runId){
+  const run = STATE.cache.depreciationRuns.find(r=>r.id===runId);
+  if(!run) return;
+  const lines = buildDepreciationRunJVLines(run);
+  const head = ['Account Code','Account Name','Description','Debit','Credit'];
+  const body = lines.map(l=>[l.account||'', l.accountName, l.description, l.debit?l.debit.toFixed(2):'', l.credit?l.credit.toFixed(2):'']);
+  downloadFile(`journal_voucher_depreciation_${run.fromDate}_to_${run.toDate}.csv`, arrayToCsv(head, body), 'text/csv');
+}
+
+function buildDisposalJVLines(d){
+  const acct = STATE.cache.settings.accounts || {};
+  const a = STATE.cache.assets.find(x=>x.id===d.assetId);
+  const assetCode = a ? a.assetCode : (d.assetCode||'—');
+  const cat = a ? STATE.cache.categories.find(c=>c.name===a.category) : null;
+  const costAcct = cat ? cat.costAccount : '';
+  const accumAcct = cat ? cat.accumDepAccount : '';
+  const lines = [];
+  if(Number(d.accumulatedDepreciation)>0) lines.push({account:accumAcct, accountName:accountName(accumAcct), description:`Write-off accumulated depreciation – ${assetCode}`, debit:Number(d.accumulatedDepreciation), credit:0});
+  if(Number(d.proceeds)>0) lines.push({account:acct.cashBank, accountName:accountName(acct.cashBank), description:`Disposal proceeds – ${assetCode}`, debit:Number(d.proceeds), credit:0});
+  if(Number(d.gainLoss) < 0) lines.push({account:acct.lossOnDisposal, accountName:accountName(acct.lossOnDisposal), description:`Loss on disposal – ${assetCode}`, debit:Math.abs(Number(d.gainLoss)), credit:0});
+  lines.push({account:costAcct, accountName:accountName(costAcct), description:`Derecognise asset cost – ${assetCode}`, debit:0, credit:Number(d.acquisitionCost)});
+  if(Number(d.gainLoss) > 0) lines.push({account:acct.gainOnDisposal, accountName:accountName(acct.gainOnDisposal), description:`Gain on disposal – ${assetCode}`, debit:0, credit:Number(d.gainLoss)});
+  return lines;
+}
+function allJournalVoucherRows(from, to){
+  const rows = [];
+  (STATE.cache.depreciationRuns||[]).filter(r=> r.fromDate<=to && r.toDate>=from).forEach(r=>{
+    const ref = `DEP-${r.fromDate}_to_${r.toDate}`;
+    buildDepreciationRunJVLines(r).forEach(l=> rows.push([ref, r.toDate, 'Depreciation Run', l.account||'', l.accountName, l.description, l.debit?l.debit.toFixed(2):'', l.credit?l.credit.toFixed(2):'']));
+  });
+  (STATE.cache.disposals||[]).filter(d=> d.disposalDate>=from && d.disposalDate<=to && d.status!=='Rejected').forEach(d=>{
+    const a = STATE.cache.assets.find(x=>x.id===d.assetId);
+    const ref = `DISPOSAL-${a?a.assetCode:d.id}-${d.disposalDate}`;
+    buildDisposalJVLines(d).forEach(l=> rows.push([ref, d.disposalDate, 'Disposal', l.account||'', l.accountName, l.description, l.debit?l.debit.toFixed(2):'', l.credit?l.credit.toFixed(2):'']));
+  });
+  return rows.sort((a,b)=> a[1].localeCompare(b[1]) || a[0].localeCompare(b[0]));
+}
+
 /* ---------------------------- REPORTS ---------------------------- */
 const REPORT_TABS = [
   {key:'register', label:'Asset Register'},
@@ -1768,7 +2137,8 @@ const REPORT_TABS = [
   {key:'wip', label:'WIP'},
   {key:'department', label:'Departmental'},
   {key:'location', label:'Location'},
-  {key:'fullydep', label:'Fully Depreciated'}
+  {key:'fullydep', label:'Fully Depreciated'},
+  {key:'journal', label:'Journal Vouchers'}
 ];
 function viewReports(){
   const tab = STATE.reportsTab || 'register';
@@ -1802,10 +2172,11 @@ function renderReportTable(tab){
   let head=[], body=[];
 
   if(tab==='register'){
-    head = ['Asset Code','Description','Category','Acq. Date','Cost','Location','Department','Staff','Rate %','Acc. Dep.','NBV','Status'];
+    head = ['Asset Code','Description','Category','Acq. Date','Cost','Location','Department','Staff','Rate %','Acc. Dep.','NBV','Status','Dep. Status','Dep. End Date','Flag'];
     body = STATE.cache.assets.filter(a=>a.acquisitionDate>=from && a.acquisitionDate<=to).map(a=>{
       const r = computeDepreciation(a, asOf);
-      return [a.assetCode,a.description,a.category,a.acquisitionDate,fmtMoney(a.cost),a.location,a.department,a.staffAssigned,a.depreciationRate,fmtMoney(r.accumulated),fmtMoney(r.nbv),a.status];
+      const flagged = assetOverDepreciatedFlag(a);
+      return [a.assetCode,a.description,a.category,a.acquisitionDate,fmtMoney(a.cost),a.location,a.department,a.staffAssigned,a.depreciationRate,fmtMoney(r.accumulated),fmtMoney(r.nbv),a.status,depreciationStatusLabel(a,asOf),r.depEndDate?fmtDate(r.depEndDate):'—',flagged?'Accum. Dep. > Cost':''];
     });
   } else if(tab==='depreciation'){
     head = ['Asset Code','Description','Opening NBV','Depreciation (Period)','Accumulated Dep.','Closing NBV'];
@@ -1863,6 +2234,9 @@ function renderReportTable(tab){
     head = ['Asset Code','Description','Category','Cost','Accumulated Dep.','Depreciation Start'];
     body = activeAssets().filter(a=>computeDepreciation(a,asOf).fullyDepreciated)
       .map(a=>{const r=computeDepreciation(a,asOf); return [a.assetCode,a.description,a.category,fmtMoney(a.cost),fmtMoney(r.accumulated),fmtDate(a.depreciationStartDate)];});
+  } else if(tab==='journal'){
+    head = ['Voucher Ref','Date','Source','Account Code','Account Name','Description','Debit','Credit'];
+    body = allJournalVoucherRows(from, to);
   }
   STATE._lastReport = {head, body, tab};
   if(body.length===0) return `<div class="empty-state">No data for the selected report and period.</div>`;
@@ -1872,13 +2246,13 @@ function renderReportTable(tab){
 }
 
 /* ---------------------------- MIGRATION / IMPORT ---------------------------- */
-const MIGRATION_FIELDS = ['Existing Asset Code','Suggested Asset Code','Asset Category','Asset Description','Asset Tag','Acquisition Date','Acquisition Cost','Location','Department','Staff Assigned','Project','Depreciation Start Date','Depreciation Rate','Accumulated Depreciation','Net Book Value','Serial Number','Remarks'];
+const MIGRATION_FIELDS = ['Existing Asset Code','Suggested Asset Code','Asset Category','Asset Description','Asset Tag','Acquisition Date','Acquisition Cost','Supplier','Invoice Reference','Location','Department','Staff Assigned','Project','Cost Centre','Depreciation Start Date','Depreciation Rate','Accumulated Depreciation','Opening Balance Effective From','Depreciation Control','Net Book Value','Status','Serial Number','Warranty Expiry','Supporting Document Reference','Remarks'];
 
 function viewMigration(){
   return `
     <div class="card">
       <h3>1. Download Migration Template</h3>
-      <p class="note">Download the Excel-compatible CSV template, populate it with your existing asset register, then upload it below for validation.</p>
+      <p class="note">Download the Excel-compatible CSV template, populate it with your existing asset register (new purchases and assets already in use both use this same template), then upload it below for validation. For an asset already in use, fill in <strong>Accumulated Depreciation</strong> and <strong>Opening Balance Effective From</strong> so its Net Book Value carries over correctly — leave both blank for a genuinely new asset.</p>
       <button class="btn btn-outline" data-action="download-migration-template">Download Template (CSV)</button>
     </div>
     <div class="card">
@@ -1904,7 +2278,28 @@ function csvToRows(text){
   });
 }
 function downloadMigrationTemplate(){
-  const csv = MIGRATION_FIELDS.join(',') + '\n' + 'EX-0001,LAND-0001,Land,Sample plot description,TAG-001,2023-01-10,50000,Head Office,Finance,,,2023-01-01,0,0,50000,,\n';
+  const rowFor = (vals) => MIGRATION_FIELDS.map(f => vals[f]!==undefined ? vals[f] : '').join(',');
+  const sampleNew = rowFor({
+    'Existing Asset Code':'EX-0001','Asset Category':'Furniture & Fittings','Asset Description':'Sample new office chairs',
+    'Asset Tag':'TAG-001','Acquisition Date':'2026-03-10','Acquisition Cost':'12000','Supplier':'ABC Furniture Ltd',
+    'Invoice Reference':'INV-2201','Location':'Head Office','Department':'Finance','Depreciation Start Date':'2026-03-01',
+    'Depreciation Rate':'15','Accumulated Depreciation':'0','Net Book Value':'12000','Status':'Active'
+  });
+  const sampleExisting = rowFor({
+    'Existing Asset Code':'EX-0002','Asset Category':'Motor Vehicles','Asset Description':'Sample existing delivery van',
+    'Asset Tag':'TAG-002','Acquisition Date':'2022-06-15','Acquisition Cost':'180000','Location':'Head Office','Department':'Logistics',
+    'Depreciation Start Date':'2022-07-01','Depreciation Rate':'20','Accumulated Depreciation':'90000',
+    'Opening Balance Effective From':'2026-01-01','Depreciation Control':'Depreciate','Net Book Value':'90000','Status':'Active','Serial Number':'VIN12345',
+    'Warranty Expiry':'2024-06-15','Remarks':'Already in use before joining this register'
+  });
+  const sampleFullyDep = rowFor({
+    'Existing Asset Code':'EX-0003','Asset Category':'Office Equipment','Asset Description':'Sample pre-2026 fully depreciated printer',
+    'Acquisition Date':'2018-04-01','Acquisition Cost':'6000','Location':'Head Office','Department':'Admin',
+    'Depreciation Start Date':'2018-04-01','Depreciation Rate':'20','Accumulated Depreciation':'6000',
+    'Depreciation Control':'Fully Depreciated','Net Book Value':'0','Status':'Active',
+    'Remarks':'Carried in fully depreciated from the prior informal register'
+  });
+  const csv = MIGRATION_FIELDS.join(',') + '\n' + sampleNew + '\n' + sampleExisting + '\n' + sampleFullyDep + '\n';
   downloadFile('fixed_assets_migration_template.csv', csv, 'text/csv');
 }
 function validateMigrationRows(rows){
@@ -1922,12 +2317,18 @@ function validateMigrationRows(rows){
     const description = get('Asset Description');
     const acqDate = get('Acquisition Date');
     const cost = get('Acquisition Cost');
+    const accDep = get('Accumulated Depreciation');
+    const openingDate = get('Opening Balance Effective From');
+    const rawControl = get('Depreciation Control').trim().toLowerCase();
+    const depControl = rawControl==='fully depreciated' ? 'Fully Depreciated' : rawControl==='do not start' ? 'Do Not Start' : 'Depreciate';
 
     if(!description) errors.push('Missing description');
     if(!category) errors.push('Missing category');
     else if(!catNames.includes(category.toLowerCase())) errors.push('Unknown category');
     if(!acqDate || isNaN(Date.parse(acqDate))) errors.push('Invalid acquisition date');
     if(!cost || isNaN(Number(cost))) errors.push('Invalid cost');
+    if(accDep && Number(accDep)>0 && !openingDate && depControl==='Depreciate') errors.push('Accumulated Depreciation given without Opening Balance Effective From');
+    const overDepreciated = accDep && Number(accDep) > Number(cost);
     let duplicate = false;
     if(code){
       const codeL = code.toLowerCase();
@@ -1936,10 +2337,14 @@ function validateMigrationRows(rows){
       seenInFile.add(codeL);
     }
     return {
-      rowNum: i+2, code, category, description, acqDate, cost,
+      rowNum: i+2, code, category, description, assetTag: get('Asset Tag'), acqDate, cost,
+      supplier: get('Supplier'), invoiceRef: get('Invoice Reference'),
       location: get('Location'), department: get('Department'), staffAssigned: get('Staff Assigned'),
-      project: get('Project'), depStart: get('Depreciation Start Date'), depRate: get('Depreciation Rate'),
-      accDep: get('Accumulated Depreciation'), serial: get('Serial Number'), remarks: get('Remarks'),
+      project: get('Project'), costCentre: get('Cost Centre'),
+      depStart: get('Depreciation Start Date'), depRate: get('Depreciation Rate'),
+      accDep, openingDate, depControl, overDepreciated, rowStatus: get('Status'),
+      serial: get('Serial Number'), warrantyExpiry: get('Warranty Expiry'), docRef: get('Supporting Document Reference'),
+      remarks: get('Remarks'),
       errors, status: errors.length ? (duplicate?'Duplicate':'Error') : 'Valid'
     };
   });
@@ -1949,21 +2354,24 @@ function renderMigrationPreview(results){
   const valid = results.filter(r=>r.status==='Valid').length;
   const errorCount = results.filter(r=>r.status==='Error').length;
   const dupCount = results.filter(r=>r.status==='Duplicate').length;
+  const flaggedCount = results.filter(r=>r.overDepreciated).length;
   return `
-    <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);">
+    <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);">
       <div class="kpi-card green"><div class="kpi-label">Valid Records</div><div class="kpi-value">${valid}</div></div>
       <div class="kpi-card red"><div class="kpi-label">Records with Errors</div><div class="kpi-value">${errorCount}</div></div>
       <div class="kpi-card accent"><div class="kpi-label">Duplicate Records</div><div class="kpi-value">${dupCount}</div></div>
+      <div class="kpi-card amber"><div class="kpi-label">Flagged (Accum. Dep. &gt; Cost)</div><div class="kpi-value">${flaggedCount}</div></div>
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Row</th><th>Code</th><th>Category</th><th>Description</th><th>Acq. Date</th><th>Cost</th><th>Status</th><th>Issues</th></tr></thead>
+        <thead><tr><th>Row</th><th>Code</th><th>Category</th><th>Description</th><th>Acq. Date</th><th>Cost</th><th>Accum. Dep.</th><th>Control</th><th>Status</th><th>Issues</th></tr></thead>
         <tbody>
           ${results.map(r=>`<tr>
             <td>${r.rowNum}</td><td>${escapeHtml(r.code||'—')}</td><td>${escapeHtml(r.category)}</td>
             <td>${escapeHtml(r.description)}</td><td>${escapeHtml(r.acqDate)}</td><td>${escapeHtml(r.cost)}</td>
+            <td>${escapeHtml(r.accDep||'0')}${r.overDepreciated?' ⚠️':''}</td><td>${escapeHtml(r.depControl)}</td>
             <td><span class="badge ${r.status==='Valid'?'active':r.status==='Duplicate'?'wip':'review'}">${r.status}</span></td>
-            <td>${escapeHtml(r.errors.join('; ')||'—')}</td>
+            <td>${escapeHtml(r.errors.join('; ')||(r.overDepreciated?'Accum. Dep. exceeds cost — will import flagged, NBV shown as 0':'—'))}</td>
           </tr>`).join('')}
         </tbody>
       </table>
@@ -1981,12 +2389,15 @@ async function importValidMigrationRows(results){
     const code = r.code || await generateAssetCode(cat.name);
     if(STATE.cache.assets.some(a=>a.assetCode.toLowerCase()===code.toLowerCase())) continue;
     const depStart = r.depStart && !isNaN(Date.parse(r.depStart)) ? r.depStart : fmtDate(calcDepStartDate(r.acqDate));
+    const openingAccumDep = r.accDep ? Number(r.accDep) : 0;
+    const openingAccumDepDate = openingAccumDep>0 ? (r.openingDate && !isNaN(Date.parse(r.openingDate)) ? r.openingDate : depStart) : '';
     const data = {
-      assetCode: code, assetTag:'', category: cat.name, description: r.description,
-      acquisitionDate: r.acqDate, supplier:'', invoiceRef:'', cost: Number(r.cost), currency:(STATE.cache.settings.company&&STATE.cache.settings.company.currency)||'GHS',
+      assetCode: code, assetTag: r.assetTag||'', category: cat.name, description: r.description,
+      acquisitionDate: r.acqDate, supplier: r.supplier||'', invoiceRef: r.invoiceRef||'', cost: Number(r.cost), currency:(STATE.cache.settings.company&&STATE.cache.settings.company.currency)||'GHS',
       depreciationStartDate: depStart, location: r.location, department: r.department, project: r.project,
-      staffAssigned: r.staffAssigned, costCentre:'', depreciationRate: r.depRate?Number(r.depRate):cat.rate,
-      depreciationMethod: cat.method, status:'Active', serialNumber: r.serial, warrantyExpiry:'', docRef:'',
+      staffAssigned: r.staffAssigned, costCentre: r.costCentre||'', depreciationRate: r.depRate?Number(r.depRate):cat.rate,
+      depreciationMethod: cat.method, status: r.rowStatus || 'Active', serialNumber: r.serial, warrantyExpiry: r.warrantyExpiry||'', docRef: r.docRef||'',
+      openingAccumDep, openingAccumDepDate, depreciationControl: r.depControl || 'Depreciate',
       remarks: (r.remarks||'') + ' [Migrated from Excel]', createdAt: new Date().toISOString(), createdBy: STATE.currentUser.username
     };
     await dbAdd('assets', data);
@@ -2229,6 +2640,7 @@ const ADMIN_TABS = [
   {key:'categories', label:'Categories & Rates'},
   {key:'codes', label:'Asset Code Config'},
   {key:'company', label:'Company Settings'},
+  {key:'accounts', label:'Chart of Accounts'},
   {key:'backup', label:'Backup & Restore'},
   {key:'sync', label:'Google Sheets Sync'}
 ];
@@ -2246,6 +2658,7 @@ function renderAdminTab(tab){
   if(tab==='categories') return adminCategoriesTab();
   if(tab==='codes') return adminCodesTab();
   if(tab==='company') return adminCompanyTab();
+  if(tab==='accounts') return adminAccountsTab();
   if(tab==='backup') return adminBackupTab();
   if(tab==='sync') return adminSyncTab();
   return '';
@@ -2358,22 +2771,31 @@ function adminCategoriesTab(){
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Category</th><th>Code Prefix</th><th class="text-right">Annual Rate</th><th>Method</th><th></th></tr></thead>
+          <thead><tr><th>Category</th><th>Code Prefix</th><th class="text-right">Annual Rate</th><th>Method</th><th>Cost Account</th><th>Accum. Dep. Account</th><th></th></tr></thead>
           <tbody>
             ${cats.map(c=>`<tr>
               <td>${escapeHtml(c.name)}</td><td>${escapeHtml(c.prefix)}</td>
               <td class="text-right">${c.rate}%</td><td>${escapeHtml(c.method)}</td>
+              <td>${escapeHtml(c.costAccount||'—')} ${accountNameShort(c.costAccount)}</td>
+              <td>${escapeHtml(c.accumDepAccount||'—')} ${accountNameShort(c.accumDepAccount)}</td>
               <td><button class="link-btn" data-action="open-category-form" data-id="${c.id}">Edit</button></td>
             </tr>`).join('')}
           </tbody>
         </table>
       </div>
-      <p class="note" style="margin-top:10px;">Changing a rate here only affects future depreciation calculations for assets that reference this default; existing assets retain their historically assigned rate unless individually edited by an administrator.</p>
+      <p class="note" style="margin-top:10px;">Changing a rate here only affects future depreciation calculations for assets that reference this default; existing assets retain their historically assigned rate unless individually edited by an administrator. Cost/Accumulated Depreciation accounts feed the Journal Voucher reports — manage the account list itself under Administration → Chart of Accounts.</p>
     </div>
   `;
 }
+function accountNameShort(code){
+  if(!code) return '';
+  const a = (STATE.cache.chartOfAccounts||[]).find(x=>x.code===code);
+  return a ? `(${a.name})` : '(unmapped)';
+}
 function categoryForm(catId){
   const editing = STATE.cache.categories.find(c=>c.id===catId);
+  const accts = STATE.cache.chartOfAccounts||[];
+  const acctOptions = (selected) => `<option value="">— none —</option>` + accts.map(a=>`<option value="${escapeHtml(a.code)}" ${selected===a.code?'selected':''}>${escapeHtml(a.code)} — ${escapeHtml(a.name)}</option>`).join('');
   const body = `
     <form id="category-form" onsubmit="return false;">
       <div class="form-grid" style="grid-template-columns:1fr 1fr;">
@@ -2386,13 +2808,15 @@ function categoryForm(catId){
             <option ${editing&&editing.method==='Not Depreciated'?'selected':''}>Not Depreciated</option>
           </select>
         </div>
+        <div class="field"><label>Cost Account</label><select name="costAccount">${acctOptions(editing?editing.costAccount:'')}</select></div>
+        <div class="field"><label>Accumulated Depreciation Account</label><select name="accumDepAccount">${acctOptions(editing?editing.accumDepAccount:'')}</select></div>
       </div>
     </form>`;
   const foot = `<button class="btn btn-outline" data-action="close-modal">Cancel</button><button class="btn btn-accent" id="category-save">${editing?'Save':'Create Category'}</button>`;
   openModal(editing?'Edit Category':'New Category', body, foot);
   document.getElementById('category-save').addEventListener('click', async ()=>{
     const fd = new FormData(document.getElementById('category-form'));
-    const data = {name: fd.get('name').trim(), prefix: fd.get('prefix').trim().toUpperCase(), rate: Number(fd.get('rate')), method: fd.get('method')};
+    const data = {name: fd.get('name').trim(), prefix: fd.get('prefix').trim().toUpperCase(), rate: Number(fd.get('rate')), method: fd.get('method'), costAccount: fd.get('costAccount')||'', accumDepAccount: fd.get('accumDepAccount')||''};
     if(!data.name || !data.prefix){ toast('Please complete required fields.', 'error'); return; }
     if(editing){
       await dbPut('categories', {...editing, ...data});
@@ -2433,6 +2857,94 @@ function adminCodesTab(){
     </div>
   `;
 }
+function adminAccountsTab(){
+  const accts = (STATE.cache.chartOfAccounts||[]).slice().sort((a,b)=>a.code.localeCompare(b.code));
+  const settings = STATE.cache.settings.accounts || {};
+  const acctOptions = (selected) => `<option value="">— none —</option>` + accts.map(a=>`<option value="${escapeHtml(a.code)}" ${selected===a.code?'selected':''}>${escapeHtml(a.code)} — ${escapeHtml(a.name)}</option>`).join('');
+  return `
+    <div class="card">
+      <div class="toolbar">
+        <div class="left"><h3 style="margin:0;">Chart of Accounts</h3></div>
+        <div class="right"><button class="btn btn-accent btn-sm" data-action="open-account-form">+ New Account</button></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Code</th><th>Name</th><th>Type</th><th></th></tr></thead>
+          <tbody>
+            ${accts.length===0 ? `<tr><td colspan="4"><div class="empty-state">No accounts yet.</div></td></tr>` :
+              accts.map(a=>`<tr>
+                <td><strong>${escapeHtml(a.code)}</strong></td><td>${escapeHtml(a.name)}</td><td>${escapeHtml(a.type)}</td>
+                <td><button class="link-btn" data-action="open-account-form" data-id="${a.id}">Edit</button> <button class="link-btn danger" data-action="delete-account" data-id="${a.id}">Delete</button></td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      <p class="note" style="margin-top:10px;">Per-category Cost / Accumulated Depreciation accounts are mapped under Administration → Categories &amp; Rates.</p>
+    </div>
+    <div class="card">
+      <h3>Default Accounts</h3>
+      <p class="note">Used automatically when generating Journal Vouchers for depreciation runs and disposals.</p>
+      <div class="form-grid" style="grid-template-columns:1fr 1fr;max-width:700px;">
+        <div class="field"><label>Depreciation Expense</label><select id="acct-depexp">${acctOptions(settings.depreciationExpense)}</select></div>
+        <div class="field"><label>Cash / Bank (disposal proceeds)</label><select id="acct-cash">${acctOptions(settings.cashBank)}</select></div>
+        <div class="field"><label>Gain on Disposal</label><select id="acct-gain">${acctOptions(settings.gainOnDisposal)}</select></div>
+        <div class="field"><label>Loss on Disposal</label><select id="acct-loss">${acctOptions(settings.lossOnDisposal)}</select></div>
+        <div class="field"><label>Accounts Payable / Creditors (acquisitions)</label><select id="acct-creditors">${acctOptions(settings.creditors)}</select></div>
+      </div>
+      <div class="actions-row"><button class="btn btn-accent" data-action="admin-action" id="accounts-save">Save Default Accounts</button></div>
+    </div>
+  `;
+}
+function accountForm(acctId){
+  const editing = (STATE.cache.chartOfAccounts||[]).find(a=>a.id===acctId);
+  const body = `
+    <form id="account-form" onsubmit="return false;">
+      <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+        <div class="field"><label>Account Code *</label><input type="text" name="code" required value="${editing?escapeHtml(editing.code):''}"></div>
+        <div class="field"><label>Type *</label>
+          <select name="type" required>
+            ${['Asset','Contra-Asset','Liability','Equity','Income','Expense'].map(t=>`<option ${editing&&editing.type===t?'selected':''}>${t}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field span2" style="grid-column:1/-1;"><label>Account Name *</label><input type="text" name="name" required value="${editing?escapeHtml(editing.name):''}"></div>
+      </div>
+    </form>`;
+  const foot = `<button class="btn btn-outline" data-action="close-modal">Cancel</button><button class="btn btn-accent" id="account-save">${editing?'Save':'Create Account'}</button>`;
+  openModal(editing?'Edit Account':'New Account', body, foot);
+  document.getElementById('account-save').addEventListener('click', async ()=>{
+    const fd = new FormData(document.getElementById('account-form'));
+    const data = {code: fd.get('code').trim(), name: fd.get('name').trim(), type: fd.get('type')};
+    if(!data.code || !data.name){ toast('Please complete required fields.', 'error'); return; }
+    const dup = (STATE.cache.chartOfAccounts||[]).some(a=>a.code===data.code && (!editing || a.id!==editing.id));
+    if(dup){ toast('That account code is already in use.', 'error'); return; }
+    if(editing){
+      await dbPut('chartOfAccounts', {...editing, ...data});
+      await logAudit('Update Account', 'ChartOfAccounts', data.code, editing, data);
+      toast('Account updated.', 'success');
+    } else {
+      await dbAdd('chartOfAccounts', data);
+      await logAudit('Create Account', 'ChartOfAccounts', data.code, null, data);
+      toast('Account created.', 'success');
+    }
+    await refreshCache();
+    closeModal();
+    renderView();
+  });
+}
+async function deleteAccount(acctId){
+  const a = (STATE.cache.chartOfAccounts||[]).find(x=>x.id===acctId);
+  if(!a) return;
+  const inUse = STATE.cache.categories.some(c=>c.costAccount===a.code || c.accumDepAccount===a.code);
+  if(inUse){ toast('This account is mapped to a category and cannot be deleted. Remove that mapping first.', 'error'); return; }
+  confirmDialog(`Delete account ${a.code} — ${a.name}?`, async ()=>{
+    await dbDelete('chartOfAccounts', acctId);
+    await logAudit('Delete Account', 'ChartOfAccounts', a.code, a, null);
+    await refreshCache();
+    toast('Account deleted.', 'success');
+    renderView();
+  });
+}
+
 function adminCompanyTab(){
   const company = STATE.cache.settings.company || {name:'', currency:'GHS'};
   return `
@@ -2601,6 +3113,15 @@ document.addEventListener('click', async (e)=>{
   }
   if(action==='report-print'){ printCurrentReport(); return; }
   if(action==='export-depreciation'){ exportDepreciationCsv(); return; }
+  if(action==='run-depreciation'){
+    const from = document.getElementById('dep-run-from').value;
+    const to = document.getElementById('dep-run-to').value;
+    STATE.depRunFrom = from; STATE.depRunTo = to;
+    await runDepreciationForPeriod(from, to);
+    return;
+  }
+  if(action==='view-dep-run'){ viewDepreciationRunJV(Number(btn.dataset.id)); return; }
+  if(action==='download-dep-run-jv'){ downloadDepreciationRunJVCsv(Number(btn.dataset.id)); return; }
 
   if(action==='download-migration-template'){ downloadMigrationTemplate(); return; }
 
@@ -2642,6 +3163,35 @@ document.addEventListener('click', async (e)=>{
     renderView();
     return;
   }
+  if(btn.id==='accounts-save'){
+    const data = {
+      key:'accounts',
+      depreciationExpense: document.getElementById('acct-depexp').value,
+      cashBank: document.getElementById('acct-cash').value,
+      gainOnDisposal: document.getElementById('acct-gain').value,
+      lossOnDisposal: document.getElementById('acct-loss').value,
+      creditors: document.getElementById('acct-creditors').value
+    };
+    await dbPut('settings', data);
+    await logAudit('Update Default Accounts', 'Settings', 'accounts', null, data);
+    await refreshCache();
+    toast('Default accounts saved.', 'success');
+    renderView();
+    return;
+  }
+  if(action==='open-account-form'){ accountForm(btn.dataset.id?Number(btn.dataset.id):null); return; }
+  if(action==='delete-account'){ await deleteAccount(Number(btn.dataset.id)); return; }
+  if(action==='grid-add-row'){
+    const idx = STATE.gridRowSeq++;
+    document.getElementById('quick-grid-body').insertAdjacentHTML('beforeend', quickGridRowHtml(idx, STATE.cache.categories));
+    return;
+  }
+  if(action==='grid-remove-row'){
+    const tr = btn.closest('tr[data-row]');
+    if(tr) tr.remove();
+    return;
+  }
+  if(action==='grid-save-all'){ await saveQuickGridRows(); return; }
   if(btn.id==='backup-create'){
     const backup = {};
     for(const store of ALL_STORES){ backup[store] = await dbGetAll(store); }
