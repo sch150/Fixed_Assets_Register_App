@@ -483,7 +483,7 @@
    (openDatabase / dbGetAll / dbGet / dbPut / dbAdd / dbDelete /
    dbClear) regardless of which backend is active. ------------------- */
 const DB_NAME = 'farsDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // bumped when chartOfAccounts/depreciationRuns stores were added
 const ALL_STORES = ['users','categories','assets','wipProjects','wipExpenditure','transfers','disposals','auditLog','settings','chartOfAccounts','depreciationRuns'];
 
 let DB = null;            // IndexedDB handle (idb backend only)
