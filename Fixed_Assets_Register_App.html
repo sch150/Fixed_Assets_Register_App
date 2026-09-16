@@ -408,7 +408,7 @@
     </div>
     <div class="login-body">
       <div id="login-error" class="login-error hidden"></div>
-      <form id="login-form">
+      <form id="login-form" onsubmit="return false;">
         <div class="field">
           <label for="login-username">Username</label>
           <input type="text" id="login-username" autocomplete="username" required>
@@ -1137,7 +1137,7 @@ function viewAssetForm(editId){
   const cats = STATE.cache.categories;
   const currency = (STATE.cache.settings.company && STATE.cache.settings.company.currency) || 'GHS';
   return `
-    <form id="asset-form" class="card">
+    <form id="asset-form" class="card" onsubmit="return false;">
       <input type="hidden" name="id" value="${editing?editing.id:''}">
       <fieldset>
         <legend>Identification</legend>
@@ -1344,7 +1344,7 @@ function viewWip(){
 }
 function wipProjectForm(){
   const body = `
-    <form id="wip-project-form">
+    <form id="wip-project-form" onsubmit="return false;">
       <div class="form-grid" style="grid-template-columns:1fr 1fr;">
         <div class="field"><label>Project Code *</label><input type="text" name="code" required placeholder="e.g. WIP-PRJ-001"></div>
         <div class="field"><label>Project Name *</label><input type="text" name="name" required></div>
@@ -1380,7 +1380,7 @@ function wipExpenditureForm(projectId){
   if(!p) return;
   const body = `
     <p class="note">Project: <strong>${escapeHtml(p.code)} — ${escapeHtml(p.name)}</strong></p>
-    <form id="wip-exp-form">
+    <form id="wip-exp-form" onsubmit="return false;">
       <div class="form-grid" style="grid-template-columns:1fr 1fr;">
         <div class="field"><label>Date *</label><input type="date" name="date" required value="${todayStr()}"></div>
         <div class="field"><label>Expenditure Type *</label>
@@ -1434,7 +1434,7 @@ function wipReclassifyForm(projectId){
   const cats = STATE.cache.categories.filter(c=>!c.name.startsWith('WIP'));
   const body = `
     <p class="note">Reclassifying <strong>${escapeHtml(p.code)} — ${escapeHtml(p.name)}</strong> into a fixed asset.</p>
-    <form id="wip-reclass-form">
+    <form id="wip-reclass-form" onsubmit="return false;">
       <div class="form-grid" style="grid-template-columns:1fr 1fr;">
         <div class="field"><label>New Asset Category *</label>
           <select name="category" id="reclass-category" required><option value="">Select</option>${cats.map(c=>`<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('')}</select>
@@ -1512,7 +1512,7 @@ function viewTransfers(){
 function transferForm(){
   const assets = activeAssets().filter(a=>a.status!=='Disposed');
   const body = `
-    <form id="transfer-form">
+    <form id="transfer-form" onsubmit="return false;">
       <div class="form-grid" style="grid-template-columns:1fr 1fr;">
         <div class="field span2" style="grid-column:1/-1;"><label>Asset *</label>
           <select name="assetId" id="transfer-asset" required>
@@ -1606,7 +1606,7 @@ function viewDisposals(){
 function disposalForm(){
   const assets = activeAssets();
   const body = `
-    <form id="disposal-form">
+    <form id="disposal-form" onsubmit="return false;">
       <div class="form-grid" style="grid-template-columns:1fr 1fr;">
         <div class="field span2" style="grid-column:1/-1;"><label>Asset *</label>
           <select name="assetId" id="disposal-asset" required>
@@ -2280,7 +2280,7 @@ function adminUsersTab(){
 function userForm(userId){
   const editing = STATE.cache.users.find(u=>u.id===userId);
   const body = `
-    <form id="user-form">
+    <form id="user-form" onsubmit="return false;">
       <div class="form-grid" style="grid-template-columns:1fr 1fr;">
         <div class="field"><label>Username *</label><input type="text" name="username" required value="${editing?escapeHtml(editing.username):''}" ${editing?'readonly':''}></div>
         <div class="field"><label>Full Name</label><input type="text" name="fullName" value="${editing?escapeHtml(editing.fullName||''):''}"></div>
@@ -2375,7 +2375,7 @@ function adminCategoriesTab(){
 function categoryForm(catId){
   const editing = STATE.cache.categories.find(c=>c.id===catId);
   const body = `
-    <form id="category-form">
+    <form id="category-form" onsubmit="return false;">
       <div class="form-grid" style="grid-template-columns:1fr 1fr;">
         <div class="field span2" style="grid-column:1/-1;"><label>Category Name *</label><input type="text" name="name" required value="${editing?escapeHtml(editing.name):''}"></div>
         <div class="field"><label>Code Prefix *</label><input type="text" name="prefix" required value="${editing?escapeHtml(editing.prefix):''}"></div>
